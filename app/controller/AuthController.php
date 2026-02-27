@@ -30,6 +30,7 @@ class AuthController extends BaseController
             $username = $params['username'] ?? '';
             $password = $params['password'] ?? '';
             $remember = $params['remember'] ?? false;
+            $expectedRole = $params['role'] ?? null; // 期望的角色
 
             // 验证数据
             $validate = new UserValidate();
@@ -52,6 +53,18 @@ class AuthController extends BaseController
             // 验证密码
             if (!$user->checkPassword($password)) {
                 return Response::error('密码错误');
+            }
+
+            // 验证角色（如果指定了期望角色）
+            if ($expectedRole && $user->role !== $expectedRole) {
+                $roleNames = [
+                    'consumer' => '消费者',
+                    'merchant' => '农户',
+                    'admin' => '管理员'
+                ];
+                $expectedRoleName = $roleNames[$expectedRole] ?? $expectedRole;
+                $actualRoleName = $roleNames[$user->role] ?? $user->role;
+                return Response::error("该账号是{$actualRoleName}账号，请使用{$expectedRoleName}登录入口");
             }
 
             // 生成 JWT Token
