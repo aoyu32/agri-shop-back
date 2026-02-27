@@ -70,6 +70,8 @@ class AuthController extends BaseController
                     'phone' => $user->phone,
                     'avatar' => $user->avatar,
                     'nickname' => $user->nickname,
+                    'address' => $user->address,
+                    'bio' => $user->bio,
                     'role' => $user->role,
                 ]
             ], '登录成功');
@@ -123,6 +125,11 @@ class AuthController extends BaseController
             // 设置默认角色
             $role = in_array($role, ['consumer', 'merchant']) ? $role : 'consumer';
 
+            // 根据角色设置默认简介
+            $defaultBio = $role === 'merchant'
+                ? '这位商家很懒，还没有填写简介'
+                : '这位用户很懒，还没有填写简介';
+
             // 创建用户
             $user = User::create([
                 'username' => $username,
@@ -131,6 +138,8 @@ class AuthController extends BaseController
                 'role' => $role,
                 'status' => 1,
                 'avatar' => 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png',
+                'address' => '未填写',
+                'bio' => $defaultBio,
             ]);
 
             // 删除验证码缓存
@@ -299,6 +308,8 @@ class AuthController extends BaseController
                     'phone' => $user->phone,
                     'avatar' => $user->avatar,
                     'nickname' => $user->nickname,
+                    'address' => $user->address,
+                    'bio' => $user->bio,
                     'role' => $user->role,
                     'gender' => $user->gender,
                 ]

@@ -16,16 +16,28 @@ class Cors
      */
     public function handle($request, Closure $next)
     {
-        header('Access-Control-Allow-Origin: *');
-        header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-        header('Access-Control-Allow-Headers: Authorization, Content-Type, If-Match, If-Modified-Since, If-None-Match, If-Unmodified-Since, X-Requested-With');
-        header('Access-Control-Max-Age: 1728000');
-
-        // 处理OPTIONS请求
+        // 处理OPTIONS预检请求
         if ($request->method(true) == 'OPTIONS') {
-            return response('', 204);
+            return response()
+                ->code(204)
+                ->header([
+                    'Access-Control-Allow-Origin' => '*',
+                    'Access-Control-Allow-Methods' => 'GET, POST, PUT, DELETE, OPTIONS',
+                    'Access-Control-Allow-Headers' => 'Authorization, Content-Type, If-Match, If-Modified-Since, If-None-Match, If-Unmodified-Since, X-Requested-With',
+                    'Access-Control-Max-Age' => '1728000',
+                ]);
         }
 
-        return $next($request);
+        $response = $next($request);
+
+        // 添加CORS响应头
+        $response->header([
+            'Access-Control-Allow-Origin' => '*',
+            'Access-Control-Allow-Methods' => 'GET, POST, PUT, DELETE, OPTIONS',
+            'Access-Control-Allow-Headers' => 'Authorization, Content-Type, If-Match, If-Modified-Since, If-None-Match, If-Unmodified-Since, X-Requested-With',
+            'Access-Control-Max-Age' => '1728000',
+        ]);
+
+        return $response;
     }
 }

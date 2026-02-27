@@ -23,6 +23,8 @@ class User extends Model
         'avatar'      => 'string',
         'nickname'    => 'string',
         'gender'      => 'int',
+        'address'     => 'string',
+        'bio'         => 'string',
         'role'        => 'string',
         'status'      => 'int',
         'created_at'  => 'datetime',
