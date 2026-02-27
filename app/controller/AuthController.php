@@ -171,7 +171,7 @@ class AuthController extends BaseController
 
             // 验证手机号
             $validate = new UserValidate();
-            if (!$validate->scene('send_code')->check(['phone' => $phone])) {
+            if (!$validate->scene('send_code')->check(['phone_only' => $phone])) {
                 return Response::validateError($validate->getError());
             }
 
@@ -220,7 +220,7 @@ class AuthController extends BaseController
             // 验证数据
             $validate = new UserValidate();
             $data = [
-                'phone' => $phone,
+                'phone_only' => $phone,
                 'code' => $code,
                 'password' => $password,
                 'confirm_password' => $confirm_password
