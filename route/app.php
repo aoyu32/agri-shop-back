@@ -49,6 +49,12 @@ Route::group('api/product', function () {
     // 获取所有商品（分页）
     Route::get('list', 'ProductController/list');
 
+    // 高级筛选商品
+    Route::get('filter', 'ProductController/filter');
+
+    // 获取产地列表
+    Route::get('origins', 'ProductController/getOrigins');
+
     // 根据分类获取商品
     Route::get('category', 'ProductController/listByCategory');
 

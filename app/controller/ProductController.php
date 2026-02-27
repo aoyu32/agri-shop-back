@@ -199,4 +199,100 @@ class ProductController extends BaseController
             return Response::error('获取商品列表失败：' . $e->getMessage());
         }
     }
+
+    /**
+     * 高级筛选商品列表
+     */
+    public function filter()
+    {
+        try {
+            $categoryId = $this->request->param('category_id', null);
+            $minPrice = $this->request->param('min_price', null);
+            $maxPrice = $this->request->param('max_price', null);
+            $origin = $this->request->param('origin', '');
+            $sortBy = $this->request->param('sort_by', 'default');
+            $page = (int)$this->request->param('page', 1);
+            $pageSize = (int)$this->request->param('page_size', 20);
+
+            $query = Product::where('status', 'on_sale');
+
+            // 分类筛选
+            if ($categoryId) {
+                $categoryIds = \app\model\Category::getCategoryWithChildren((int)$categoryId);
+                $query->whereIn('category_id', $categoryIds);
+            }
+
+            // 价格区间筛选
+            if ($minPrice !== null && $minPrice !== '') {
+                $query->where('price', '>=', (float)$minPrice);
+            }
+            if ($maxPrice !== null && $maxPrice !== '') {
+                $query->where('price', '<=', (float)$maxPrice);
+            }
+
+            // 产地筛选
+            if ($origin) {
+                $query->where('origin', 'like', '%' . $origin . '%');
+            }
+
+            // 排序
+            switch ($sortBy) {
+                case 'sales':
+                    $query->order('sales', 'desc');
+                    break;
+                case 'price_asc':
+                    $query->order('price', 'asc');
+                    break;
+                case 'price_desc':
+                    $query->order('price', 'desc');
+                    break;
+                case 'newest':
+                    $query->order('created_at', 'desc');
+                    break;
+                case 'default':
+                default:
+                    $query->order('sales', 'desc')
+                        ->order('created_at', 'desc');
+                    break;
+            }
+
+            $products = $query->paginate([
+                'list_rows' => $pageSize,
+                'page' => $page,
+            ]);
+
+            // 加载关联数据
+            $products->load(['shop', 'category', 'tags']);
+
+            return Response::success([
+                'list' => $products->items(),
+                'total' => $products->total(),
+                'page' => $products->currentPage(),
+                'page_size' => $products->listRows(),
+                'last_page' => $products->lastPage(),
+            ]);
+        } catch (\Exception $e) {
+            return Response::error('筛选商品失败：' . $e->getMessage());
+        }
+    }
+
+    /**
+     * 获取所有产地列表
+     */
+    public function getOrigins()
+    {
+        try {
+            $origins = Product::where('status', 'on_sale')
+                ->where('origin', '<>', '')
+                ->whereNotNull('origin')
+                ->group('origin')
+                ->column('origin');
+
+            return Response::success([
+                'list' => array_values($origins)
+            ]);
+        } catch (\Exception $e) {
+            return Response::error('获取产地列表失败：' . $e->getMessage());
+        }
+    }
 }
