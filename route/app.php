@@ -103,3 +103,30 @@ Route::group('api/cart', function () {
     // 获取购物车统计
     Route::get('count', 'CartController/count');
 })->middleware(\app\middleware\Auth::class);
+
+// 订单相关路由（需要登录）
+Route::group('api/order', function () {
+    // 创建订单
+    Route::post('create', 'OrderController/create');
+
+    // 获取订单列表
+    Route::get('list', 'OrderController/list');
+
+    // 获取订单详情
+    Route::get('detail', 'OrderController/detail');
+
+    // 支付订单
+    Route::post('pay', 'OrderController/pay');
+
+    // 取消订单
+    Route::post('cancel', 'OrderController/cancel');
+
+    // 确认收货
+    Route::post('confirm', 'OrderController/confirm');
+
+    // 删除订单
+    Route::post('delete', 'OrderController/delete');
+
+    // 获取订单统计
+    Route::get('statistics', 'OrderController/statistics');
+})->middleware(\app\middleware\Auth::class);
