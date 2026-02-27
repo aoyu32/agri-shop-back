@@ -98,11 +98,14 @@ class Product extends Model
     }
 
     /**
-     * 根据分类获取商品
+     * 根据分类获取商品（支持查询子分类）
      */
     public static function getProductsByCategory($categoryId, $page = 1, $pageSize = 20)
     {
-        return self::where('category_id', $categoryId)
+        // 获取分类及其所有子分类ID
+        $categoryIds = Category::getCategoryWithChildren($categoryId);
+
+        return self::whereIn('category_id', $categoryIds)
             ->where('status', 'on_sale')
             ->order('sales', 'desc')
             ->paginate([

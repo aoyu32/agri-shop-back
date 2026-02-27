@@ -76,4 +76,25 @@ class Category extends Model
             ->order('sort_order', 'asc')
             ->select();
     }
+
+    /**
+     * 获取分类及其所有子分类的ID数组
+     * @param int $categoryId 分类ID
+     * @return array 包含该分类及其所有子分类的ID数组
+     */
+    public static function getCategoryWithChildren($categoryId)
+    {
+        $ids = [$categoryId];
+
+        // 查询所有子分类
+        $children = self::where('parent_id', $categoryId)
+            ->where('status', 1)
+            ->column('id');
+
+        if (!empty($children)) {
+            $ids = array_merge($ids, $children);
+        }
+
+        return $ids;
+    }
 }

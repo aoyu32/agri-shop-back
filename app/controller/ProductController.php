@@ -168,4 +168,35 @@ class ProductController extends BaseController
             return Response::error('搜索商品失败：' . $e->getMessage());
         }
     }
+
+    /**
+     * 获取所有商品（分页）
+     */
+    public function list()
+    {
+        try {
+            $page = (int)$this->request->param('page', 1);
+            $pageSize = (int)$this->request->param('page_size', 20);
+
+            $products = Product::where('status', 'on_sale')
+                ->order('sales', 'desc')
+                ->paginate([
+                    'list_rows' => $pageSize,
+                    'page' => $page,
+                ]);
+
+            // 加载关联数据
+            $products->load(['shop', 'category', 'tags']);
+
+            return Response::success([
+                'list' => $products->items(),
+                'total' => $products->total(),
+                'page' => $products->currentPage(),
+                'page_size' => $products->listRows(),
+                'last_page' => $products->lastPage(),
+            ]);
+        } catch (\Exception $e) {
+            return Response::error('获取商品列表失败：' . $e->getMessage());
+        }
+    }
 }

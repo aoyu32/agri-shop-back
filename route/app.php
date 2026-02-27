@@ -46,6 +46,9 @@ Route::group('api/product', function () {
     // 获取促销商品
     Route::get('promotion', 'ProductController/promotionList');
 
+    // 获取所有商品（分页）
+    Route::get('list', 'ProductController/list');
+
     // 根据分类获取商品
     Route::get('category', 'ProductController/listByCategory');
 
@@ -54,4 +57,13 @@ Route::group('api/product', function () {
 
     // 搜索商品
     Route::get('search', 'ProductController/search');
+});
+
+// 店铺相关路由
+Route::group('api/shop', function () {
+    // 获取推荐店铺
+    Route::get('recommended', 'ShopController/recommendedList');
+
+    // 获取店铺详情
+    Route::get('detail', 'ShopController/detail');
 });
