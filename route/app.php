@@ -25,3 +25,33 @@ Route::group('api', function () {
         Route::post('logout', 'AuthController/logout')->middleware(\app\middleware\Auth::class);
     });
 });
+
+// 分类相关路由
+Route::group('api/category', function () {
+    // 获取分类列表
+    Route::get('list', 'CategoryController/list');
+
+    // 获取分类树
+    Route::get('tree', 'CategoryController/tree');
+
+    // 获取分类详情
+    Route::get('detail', 'CategoryController/detail');
+});
+
+// 商品相关路由
+Route::group('api/product', function () {
+    // 获取热销商品
+    Route::get('hot', 'ProductController/hotList');
+
+    // 获取促销商品
+    Route::get('promotion', 'ProductController/promotionList');
+
+    // 根据分类获取商品
+    Route::get('category', 'ProductController/listByCategory');
+
+    // 获取商品详情
+    Route::get('detail', 'ProductController/detail');
+
+    // 搜索商品
+    Route::get('search', 'ProductController/search');
+});
