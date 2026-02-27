@@ -76,3 +76,30 @@ Route::group('api/shop', function () {
     // 获取店铺详情
     Route::get('detail', 'ShopController/detail');
 });
+
+// 购物车相关路由（需要登录）
+Route::group('api/cart', function () {
+    // 获取购物车列表
+    Route::get('list', 'CartController/list');
+
+    // 添加到购物车
+    Route::post('add', 'CartController/add');
+
+    // 更新商品数量
+    Route::post('update-quantity', 'CartController/updateQuantity');
+
+    // 切换选中状态
+    Route::post('toggle-check', 'CartController/toggleCheck');
+
+    // 全选/取消全选
+    Route::post('check-all', 'CartController/checkAll');
+
+    // 删除购物车商品
+    Route::post('delete', 'CartController/delete');
+
+    // 清空购物车
+    Route::post('clear', 'CartController/clear');
+
+    // 获取购物车统计
+    Route::get('count', 'CartController/count');
+})->middleware(\app\middleware\Auth::class);
