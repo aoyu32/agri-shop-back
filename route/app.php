@@ -1,17 +1,27 @@
 <?php
-// +----------------------------------------------------------------------
-// | ThinkPHP [ WE CAN DO IT JUST THINK ]
-// +----------------------------------------------------------------------
-// | Copyright (c) 2006~2018 http://thinkphp.cn All rights reserved.
-// +----------------------------------------------------------------------
-// | Licensed ( http://www.apache.org/licenses/LICENSE-2.0 )
-// +----------------------------------------------------------------------
-// | Author: liu21st <liu21st@gmail.com>
-// +----------------------------------------------------------------------
+
 use think\facade\Route;
 
-Route::get('think', function () {
-    return 'hello,ThinkPHP6!';
-});
+// API 路由组
+Route::group('api', function () {
+    // 认证相关路由
+    Route::group('auth', function () {
+        // 发送验证码
+        Route::post('send-code', 'AuthController/sendCode');
 
-Route::get('hello/:name', 'index/hello');
+        // 用户注册
+        Route::post('register', 'AuthController/register');
+
+        // 用户登录
+        Route::post('login', 'AuthController/login');
+
+        // 获取用户信息（需要token）
+        Route::get('user-info', 'AuthController/getUserInfo')->middleware(\app\middleware\Auth::class);
+
+        // 重置密码
+        Route::post('reset-password', 'AuthController/resetPassword');
+
+        // 退出登录（需要token）
+        Route::post('logout', 'AuthController/logout')->middleware(\app\middleware\Auth::class);
+    });
+});
