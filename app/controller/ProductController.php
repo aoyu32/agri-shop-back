@@ -295,4 +295,46 @@ class ProductController extends BaseController
             return Response::error('获取产地列表失败：' . $e->getMessage());
         }
     }
+
+    /**
+     * 获取推荐商品（基于分类或随机推荐）
+     */
+    public function recommend()
+    {
+        try {
+            $categoryId = $this->request->param('category_id', null);
+            $excludeId = (int)$this->request->param('exclude_id', 0);
+            $limit = (int)$this->request->param('limit', 6);
+
+            $query = Product::where('status', 'on_sale');
+
+            // 排除当前商品
+            if ($excludeId) {
+                $query->where('id', '<>', $excludeId);
+            }
+
+            // 如果指定了分类，优先推荐同分类商品
+            if ($categoryId) {
+                $categoryIds = \app\model\Category::getCategoryWithChildren((int)$categoryId);
+                $query->whereIn('category_id', $categoryIds);
+            }
+
+            // 按销量排序，随机取部分
+            $products = $query->order('sales', 'desc')
+                ->limit($limit * 2)
+                ->select();
+
+            // 随机打乱并取指定数量
+            $products = $products->shuffle()->slice(0, $limit);
+
+            // 加载关联数据
+            $products->load(['shop', 'category', 'tags']);
+
+            return Response::success([
+                'list' => $products
+            ]);
+        } catch (\Exception $e) {
+            return Response::error('获取推荐商品失败：' . $e->getMessage());
+        }
+    }
 }

@@ -55,6 +55,9 @@ Route::group('api/product', function () {
     // 获取产地列表
     Route::get('origins', 'ProductController/getOrigins');
 
+    // 获取推荐商品
+    Route::get('recommend', 'ProductController/recommend');
+
     // 根据分类获取商品
     Route::get('category', 'ProductController/listByCategory');
 
