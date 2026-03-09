@@ -138,6 +138,11 @@ class AuthController extends BaseController
             // 设置默认角色
             $role = in_array($role, ['consumer', 'merchant']) ? $role : 'consumer';
 
+            // 生成默认昵称
+            $nicknamePrefix = $role === 'merchant' ? 'farmer' : 'user';
+            $randomNumber = sprintf('%06d', mt_rand(0, 999999));
+            $defaultNickname = $nicknamePrefix . '-' . $randomNumber;
+
             // 根据角色设置默认简介
             $defaultBio = $role === 'merchant'
                 ? '这位商家很懒，还没有填写简介'
@@ -148,6 +153,7 @@ class AuthController extends BaseController
                 'username' => $username,
                 'password' => $password,
                 'phone' => $phone,
+                'nickname' => $defaultNickname,
                 'role' => $role,
                 'status' => 1,
                 'avatar' => 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png',
