@@ -75,6 +75,12 @@ Route::group('api/shop', function () {
 
     // 获取店铺详情
     Route::get('detail', 'ShopController/detail');
+
+    // 申请开通店铺（需要登录）
+    Route::post('apply', 'ShopController/apply')->middleware(\app\middleware\Auth::class);
+
+    // 获取我的店铺信息（需要登录）
+    Route::get('my-shop', 'ShopController/myShop')->middleware(\app\middleware\Auth::class);
 });
 
 // 购物车相关路由（需要登录）
@@ -268,3 +274,27 @@ Route::group('api/seasonal-product', function () {
     // 获取所有季节的农产品
     Route::get('all', 'SeasonalProductController/all');
 });
+
+// 农户订单管理相关路由（需要登录且为农户角色）
+Route::group('api/merchant/order', function () {
+    // 获取订单列表
+    Route::get('list', 'MerchantOrderController/list');
+
+    // 获取订单详情
+    Route::get('detail', 'MerchantOrderController/detail');
+
+    // 发货
+    Route::post('ship', 'MerchantOrderController/ship');
+
+    // 同意退款
+    Route::post('approve-refund', 'MerchantOrderController/approveRefund');
+
+    // 拒绝退款
+    Route::post('reject-refund', 'MerchantOrderController/rejectRefund');
+
+    // 删除订单
+    Route::post('delete', 'MerchantOrderController/delete');
+
+    // 获取订单统计
+    Route::get('statistics', 'MerchantOrderController/statistics');
+})->middleware(\app\middleware\Auth::class);

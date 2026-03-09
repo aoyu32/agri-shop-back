@@ -33,8 +33,9 @@ class Shop extends Model
     {
         return self::where('status', 1)
             ->where('is_recommended', 1)
+            ->where('audit_status', 1) // 只显示审核通过的店铺
             ->order('rating', 'desc')
-            ->order('followers_count', 'desc')
+            ->order('sales_count', 'desc')
             ->limit($limit)
             ->select();
     }
