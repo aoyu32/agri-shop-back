@@ -247,6 +247,9 @@ Route::group('api/user', function () {
     // 修改密码
     Route::post('change-password', 'UserController/changePassword');
 
+    // 发送验证码
+    Route::post('send-code', 'UserController/sendCode');
+
     // 更换手机号
     Route::post('change-phone', 'UserController/changePhone');
 

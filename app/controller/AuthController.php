@@ -42,17 +42,17 @@ class AuthController extends BaseController
             $user = User::findByUsernameOrPhone($username);
 
             if (!$user) {
-                return Response::error('用户不存在');
-            }
-
-            // 检查用户状态
-            if ($user->status == 0) {
-                return Response::error('账号已被禁用');
+                return Response::error('账号或密码错误');
             }
 
             // 验证密码
             if (!$user->checkPassword($password)) {
-                return Response::error('密码错误');
+                return Response::error('账号或密码错误');
+            }
+
+            // 检查用户状态（账号被禁用时也提示账号或密码错误，防止信息泄露）
+            if ($user->status == 0) {
+                return Response::error('账号或密码错误');
             }
 
             // 验证角色（如果指定了期望角色）
@@ -320,6 +320,11 @@ class AuthController extends BaseController
                 return Response::error('用户不存在');
             }
 
+            // 获取统计数据
+            $orderCount = \app\model\Order::where('user_id', $userId)->count();
+            $favoriteCount = \app\model\Favorite::where('user_id', $userId)->count();
+            $footprintCount = \app\model\Footprint::where('user_id', $userId)->count();
+
             return Response::success([
                 'user' => [
                     'id' => $user->id,
@@ -331,6 +336,11 @@ class AuthController extends BaseController
                     'bio' => $user->bio,
                     'role' => $user->role,
                     'gender' => $user->gender,
+                ],
+                'statistics' => [
+                    'order_count' => $orderCount,
+                    'favorite_count' => $favoriteCount,
+                    'footprint_count' => $footprintCount
                 ]
             ]);
         } catch (\Exception $e) {

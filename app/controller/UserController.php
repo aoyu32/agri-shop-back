@@ -29,6 +29,11 @@ class UserController extends BaseController
                 return Response::error('用户不存在');
             }
 
+            // 获取统计数据
+            $orderCount = \app\model\Order::where('user_id', $userId)->count();
+            $favoriteCount = \app\model\Favorite::where('user_id', $userId)->count();
+            $footprintCount = \app\model\Footprint::where('user_id', $userId)->count();
+
             return Response::success([
                 'user' => [
                     'id' => $user->id,
@@ -41,6 +46,11 @@ class UserController extends BaseController
                     'role' => $user->role,
                     'status' => $user->status,
                     'created_at' => $user->created_at
+                ],
+                'statistics' => [
+                    'order_count' => $orderCount,
+                    'favorite_count' => $favoriteCount,
+                    'footprint_count' => $footprintCount
                 ]
             ]);
         } catch (\Exception $e) {
@@ -223,8 +233,15 @@ class UserController extends BaseController
                 return Response::validateError('请输入验证码');
             }
 
-            // TODO: 验证验证码（需要实现验证码功能）
-            // 这里暂时跳过验证码验证
+            // 验证验证码
+            $cacheCode = \think\facade\Cache::get('sms_code_' . $newPhone);
+            if (!$cacheCode) {
+                return Response::validateError('验证码已过期，请重新获取');
+            }
+
+            if ($cacheCode != $code) {
+                return Response::validateError('验证码错误');
+            }
 
             // 检查手机号是否已被使用
             $exists = User::where('phone', $newPhone)
@@ -243,6 +260,9 @@ class UserController extends BaseController
 
             $user->phone = $newPhone;
             $user->save();
+
+            // 删除验证码缓存
+            \think\facade\Cache::delete('sms_code_' . $newPhone);
 
             return Response::success([
                 'phone' => $newPhone
@@ -276,14 +296,32 @@ class UserController extends BaseController
                 return Response::validateError('密码错误');
             }
 
-            // 软删除或标记为已注销
-            $user->status = 'deleted';
-            $user->save();
+            // 开启事务
+            \think\facade\Db::startTrans();
+            try {
+                // 软删除：标记为已注销
+                $user->status = 0; // 0表示已注销
+                $user->save();
 
-            // 也可以选择物理删除
-            // $user->delete();
+                // 可选：清理用户相关数据
+                // 1. 清空购物车
+                \app\model\Cart::where('user_id', $userId)->delete();
 
-            return Response::success([], '账号注销成功');
+                // 2. 清空收藏
+                \app\model\Favorite::where('user_id', $userId)->delete();
+
+                // 3. 清空足迹
+                \app\model\Footprint::where('user_id', $userId)->delete();
+
+                // 注意：订单和地址等重要数据保留，以便后续可能的数据恢复或审计
+
+                \think\facade\Db::commit();
+
+                return Response::success([], '账号注销成功');
+            } catch (\Exception $e) {
+                \think\facade\Db::rollback();
+                throw $e;
+            }
         } catch (\Exception $e) {
             return Response::error('注销账号失败：' . $e->getMessage());
         }
@@ -313,6 +351,51 @@ class UserController extends BaseController
             ]);
         } catch (\Exception $e) {
             return Response::error('获取统计信息失败：' . $e->getMessage());
+        }
+    }
+
+    /**
+     * 发送验证码（用于更换手机号）
+     */
+    public function sendCode()
+    {
+        try {
+            // 获取手机号
+            $phone = $this->request->param('phone');
+
+            // 验证手机号
+            if (empty($phone)) {
+                return Response::validateError('请输入手机号');
+            }
+
+            if (!preg_match('/^1[3-9]\d{9}$/', $phone)) {
+                return Response::validateError('请输入正确的手机号');
+            }
+
+            // 检查发送频率（60秒内只能发送一次）
+            $lastSendTime = \think\facade\Cache::get('sms_send_time_' . $phone);
+            if ($lastSendTime && (time() - $lastSendTime) < 60) {
+                $remainTime = 60 - (time() - $lastSendTime);
+                return Response::error("发送过于频繁，请{$remainTime}秒后再试");
+            }
+
+            // 生成6位随机验证码
+            $code = sprintf('%06d', mt_rand(0, 999999));
+
+            // 缓存验证码，有效期5分钟
+            \think\facade\Cache::set('sms_code_' . $phone, $code, 300);
+            \think\facade\Cache::set('sms_send_time_' . $phone, time(), 60);
+
+            // TODO: 实际项目中这里应该调用短信服务商API发送短信
+            // 开发环境直接返回验证码（生产环境需要删除）
+            $debugMode = env('app.debug', false);
+
+            return Response::success([
+                'message' => '验证码已发送',
+                'code' => $debugMode ? $code : null, // 仅开发环境返回验证码
+            ], '验证码发送成功');
+        } catch (\Exception $e) {
+            return Response::error('发送验证码失败：' . $e->getMessage());
         }
     }
 }
