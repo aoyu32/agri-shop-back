@@ -232,3 +232,27 @@ Route::group('api/oss', function () {
     // 复制文件
     Route::post('copy', 'OssController/copy');
 })->middleware(\app\middleware\Auth::class);
+
+// 用户信息管理相关路由（需要登录）
+Route::group('api/user', function () {
+    // 获取用户信息
+    Route::get('info', 'UserController/info');
+
+    // 更新用户信息
+    Route::post('update', 'UserController/update');
+
+    // 更新头像
+    Route::post('update-avatar', 'UserController/updateAvatar');
+
+    // 修改密码
+    Route::post('change-password', 'UserController/changePassword');
+
+    // 更换手机号
+    Route::post('change-phone', 'UserController/changePhone');
+
+    // 注销账号
+    Route::post('delete-account', 'UserController/deleteAccount');
+
+    // 获取用户统计信息
+    Route::get('statistics', 'UserController/statistics');
+})->middleware(\app\middleware\Auth::class);
