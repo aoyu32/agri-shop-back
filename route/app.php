@@ -178,3 +178,57 @@ Route::group('api/favorite', function () {
     // 获取收藏统计
     Route::get('statistics', 'FavoriteController/statistics');
 })->middleware(\app\middleware\Auth::class);
+
+// 浏览足迹相关路由（需要登录）
+Route::group('api/footprint', function () {
+    // 添加浏览记录
+    Route::post('add', 'FootprintController/add');
+
+    // 获取足迹列表
+    Route::get('list', 'FootprintController/list');
+
+    // 按日期分组获取足迹
+    Route::get('list-by-date', 'FootprintController/listByDate');
+
+    // 删除单条足迹
+    Route::post('delete', 'FootprintController/delete');
+
+    // 批量删除足迹
+    Route::post('batch-delete', 'FootprintController/batchDelete');
+
+    // 清空所有足迹
+    Route::post('clear', 'FootprintController/clear');
+
+    // 获取足迹统计
+    Route::get('statistics', 'FootprintController/statistics');
+})->middleware(\app\middleware\Auth::class);
+
+// OSS文件管理相关路由（需要登录）
+Route::group('api/oss', function () {
+    // 上传单个文件
+    Route::post('upload', 'OssController/upload');
+
+    // 批量上传文件
+    Route::post('batch-upload', 'OssController/batchUpload');
+
+    // 上传Base64图片
+    Route::post('upload-base64', 'OssController/uploadBase64');
+
+    // 删除文件
+    Route::post('delete', 'OssController/delete');
+
+    // 批量删除文件
+    Route::post('batch-delete', 'OssController/batchDelete');
+
+    // 获取文件列表
+    Route::get('list', 'OssController/list');
+
+    // 获取文件信息
+    Route::get('info', 'OssController/info');
+
+    // 获取签名URL
+    Route::get('signed-url', 'OssController/getSignedUrl');
+
+    // 复制文件
+    Route::post('copy', 'OssController/copy');
+})->middleware(\app\middleware\Auth::class);
