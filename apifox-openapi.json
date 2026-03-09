@@ -1,0 +1,1127 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "农产品交易平台 API",
+        "version": "1.0.0",
+        "description": "农产品交易平台后端接口文档"
+    },
+    "servers": [
+        {
+            "url": "http://localhost:8000",
+            "description": "本地开发环境"
+        }
+    ],
+    "tags": [
+        {
+            "name": "认证模块",
+            "description": "用户认证相关接口"
+        },
+        {
+            "name": "分类模块",
+            "description": "商品分类相关接口"
+        },
+        {
+            "name": "商品模块",
+            "description": "商品相关接口"
+        },
+        {
+            "name": "店铺模块",
+            "description": "店铺相关接口"
+        },
+        {
+            "name": "购物车模块",
+            "description": "购物车相关接口"
+        }
+    ],
+    "paths": {
+        "/api/auth/send-code": {
+            "post": {
+                "tags": [
+                    "认证模块"
+                ],
+                "summary": "发送验证码",
+                "description": "发送短信验证码到指定手机号",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "phone"
+                                ],
+                                "properties": {
+                                    "phone": {
+                                        "type": "string",
+                                        "description": "手机号",
+                                        "example": "13800138000"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Response"
+                                },
+                                "example": {
+                                    "code": 200,
+                                    "message": "验证码发送成功",
+                                    "data": {
+                                        "message": "验证码已发送",
+                                        "code": "123456"
+                                    },
+                                    "timestamp": 1234567890
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/register": {
+            "post": {
+                "tags": [
+                    "认证模块"
+                ],
+                "summary": "用户注册",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "username",
+                                    "password",
+                                    "confirm_password",
+                                    "phone",
+                                    "code"
+                                ],
+                                "properties": {
+                                    "username": {
+                                        "type": "string",
+                                        "description": "用户名",
+                                        "example": "testuser001"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "description": "密码",
+                                        "example": "123456"
+                                    },
+                                    "confirm_password": {
+                                        "type": "string",
+                                        "description": "确认密码",
+                                        "example": "123456"
+                                    },
+                                    "phone": {
+                                        "type": "string",
+                                        "description": "手机号",
+                                        "example": "13800138000"
+                                    },
+                                    "code": {
+                                        "type": "string",
+                                        "description": "验证码",
+                                        "example": "123456"
+                                    },
+                                    "role": {
+                                        "type": "string",
+                                        "enum": [
+                                            "consumer",
+                                            "merchant"
+                                        ],
+                                        "description": "角色",
+                                        "example": "consumer"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Response"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/login": {
+            "post": {
+                "tags": [
+                    "认证模块"
+                ],
+                "summary": "用户登录",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "username",
+                                    "password"
+                                ],
+                                "properties": {
+                                    "username": {
+                                        "type": "string",
+                                        "description": "用户名或手机号",
+                                        "example": "testuser001"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "description": "密码",
+                                        "example": "123456"
+                                    },
+                                    "remember": {
+                                        "type": "boolean",
+                                        "description": "是否记住密码",
+                                        "example": false
+                                    },
+                                    "role": {
+                                        "type": "string",
+                                        "enum": [
+                                            "consumer",
+                                            "merchant"
+                                        ],
+                                        "description": "期望的角色（用于角色隔离）",
+                                        "example": "consumer"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Response"
+                                },
+                                "example": {
+                                    "code": 200,
+                                    "message": "登录成功",
+                                    "data": {
+                                        "token": "eyJ0eXAiOiJKV1QiLCJhbGc...",
+                                        "user": {
+                                            "id": 1,
+                                            "username": "testuser001",
+                                            "phone": "13800138000",
+                                            "avatar": "https://...",
+                                            "nickname": null,
+                                            "address": "未填写",
+                                            "bio": "这位用户很懒，还没有填写简介",
+                                            "role": "consumer"
+                                        }
+                                    },
+                                    "timestamp": 1234567890
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/user-info": {
+            "get": {
+                "tags": [
+                    "认证模块"
+                ],
+                "summary": "获取用户信息",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Response"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/reset-password": {
+            "post": {
+                "tags": [
+                    "认证模块"
+                ],
+                "summary": "重置密码",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "phone",
+                                    "code",
+                                    "password",
+                                    "confirm_password"
+                                ],
+                                "properties": {
+                                    "phone": {
+                                        "type": "string",
+                                        "description": "手机号",
+                                        "example": "13800138000"
+                                    },
+                                    "code": {
+                                        "type": "string",
+                                        "description": "验证码",
+                                        "example": "123456"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "description": "新密码",
+                                        "example": "newpass123"
+                                    },
+                                    "confirm_password": {
+                                        "type": "string",
+                                        "description": "确认新密码",
+                                        "example": "newpass123"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Response"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/logout": {
+            "post": {
+                "tags": [
+                    "认证模块"
+                ],
+                "summary": "退出登录",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Response"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/category/list": {
+            "get": {
+                "tags": [
+                    "分类模块"
+                ],
+                "summary": "获取分类列表",
+                "description": "获取所有一级分类",
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Response"
+                                },
+                                "example": {
+                                    "code": 200,
+                                    "message": "操作成功",
+                                    "data": {
+                                        "list": [
+                                            {
+                                                "id": 1,
+                                                "parent_id": 0,
+                                                "name": "水果",
+                                                "icon": "icon-shuiguo",
+                                                "sort_order": 1,
+                                                "status": 1
+                                            }
+                                        ]
+                                    },
+                                    "timestamp": 1234567890
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/category/tree": {
+            "get": {
+                "tags": [
+                    "分类模块"
+                ],
+                "summary": "获取分类树",
+                "description": "获取分类树（包含子分类）",
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Response"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/category/detail": {
+            "get": {
+                "tags": [
+                    "分类模块"
+                ],
+                "summary": "获取分类详情",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "分类ID"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Response"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/product/hot": {
+            "get": {
+                "tags": [
+                    "商品模块"
+                ],
+                "summary": "获取热销商品",
+                "parameters": [
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 10
+                        },
+                        "description": "数量限制"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Response"
+                                },
+                                "example": {
+                                    "code": 200,
+                                    "message": "操作成功",
+                                    "data": {
+                                        "list": [
+                                            {
+                                                "id": 1,
+                                                "shop_id": 1,
+                                                "category_id": 202,
+                                                "name": "有机西红柿",
+                                                "subtitle": "新鲜有机西红柿，口感鲜美，营养丰富",
+                                                "main_image": "https://...",
+                                                "price": 15.80,
+                                                "original_price": 20.00,
+                                                "unit": "500g/份",
+                                                "stock": 150,
+                                                "sales": 1250,
+                                                "origin": "山东",
+                                                "is_hot": 1,
+                                                "is_promotion": 1,
+                                                "status": "on_sale"
+                                            }
+                                        ]
+                                    },
+                                    "timestamp": 1234567890
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/product/promotion": {
+            "get": {
+                "tags": [
+                    "商品模块"
+                ],
+                "summary": "获取促销商品",
+                "parameters": [
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 10
+                        },
+                        "description": "数量限制"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Response"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/product/category": {
+            "get": {
+                "tags": [
+                    "商品模块"
+                ],
+                "summary": "根据分类获取商品",
+                "parameters": [
+                    {
+                        "name": "category_id",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "分类ID"
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        },
+                        "description": "页码"
+                    },
+                    {
+                        "name": "page_size",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 20
+                        },
+                        "description": "每页数量"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Response"
+                                },
+                                "example": {
+                                    "code": 200,
+                                    "message": "操作成功",
+                                    "data": {
+                                        "list": [],
+                                        "total": 100,
+                                        "page": 1,
+                                        "page_size": 20,
+                                        "last_page": 5
+                                    },
+                                    "timestamp": 1234567890
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/product/detail": {
+            "get": {
+                "tags": [
+                    "商品模块"
+                ],
+                "summary": "获取商品详情",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "商品ID"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Response"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/product/search": {
+            "get": {
+                "tags": [
+                    "商品模块"
+                ],
+                "summary": "搜索商品",
+                "parameters": [
+                    {
+                        "name": "keyword",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "搜索关键词"
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        },
+                        "description": "页码"
+                    },
+                    {
+                        "name": "page_size",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 20
+                        },
+                        "description": "每页数量"
+                    },
+                    {
+                        "name": "sort_by",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "sales",
+                                "price_asc",
+                                "price_desc"
+                            ],
+                            "default": "sales"
+                        },
+                        "description": "排序方式"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Response"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/shop/recommended": {
+            "get": {
+                "tags": [
+                    "店铺模块"
+                ],
+                "summary": "获取推荐店铺",
+                "parameters": [
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 10
+                        },
+                        "description": "数量限制"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Response"
+                                },
+                                "example": {
+                                    "code": 200,
+                                    "message": "操作成功",
+                                    "data": {
+                                        "list": [
+                                            {
+                                                "id": 1,
+                                                "user_id": 2,
+                                                "shop_name": "绿野农场",
+                                                "shop_logo": "https://...",
+                                                "shop_banner": "https://...",
+                                                "description": "专注有机蔬菜种植",
+                                                "location": "山东省济南市",
+                                                "rating": 4.8,
+                                                "followers_count": 1520,
+                                                "product_count": 45,
+                                                "sales_count": 3200,
+                                                "status": 1,
+                                                "is_recommended": 1
+                                            }
+                                        ]
+                                    },
+                                    "timestamp": 1234567890
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/shop/detail": {
+            "get": {
+                "tags": [
+                    "店铺模块"
+                ],
+                "summary": "获取店铺详情",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "店铺ID"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Response"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/cart/list": {
+            "get": {
+                "tags": [
+                    "购物车模块"
+                ],
+                "summary": "获取购物车列表",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Response"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/cart/add": {
+            "post": {
+                "tags": [
+                    "购物车模块"
+                ],
+                "summary": "添加到购物车",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "product_id",
+                                    "quantity"
+                                ],
+                                "properties": {
+                                    "product_id": {
+                                        "type": "integer",
+                                        "description": "商品ID"
+                                    },
+                                    "spec_id": {
+                                        "type": "integer",
+                                        "description": "规格ID（可选）"
+                                    },
+                                    "quantity": {
+                                        "type": "integer",
+                                        "description": "数量",
+                                        "minimum": 1
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Response"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/cart/update-quantity": {
+            "post": {
+                "tags": [
+                    "购物车模块"
+                ],
+                "summary": "更新购物车商品数量",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "cart_id",
+                                    "quantity"
+                                ],
+                                "properties": {
+                                    "cart_id": {
+                                        "type": "integer",
+                                        "description": "购物车项ID"
+                                    },
+                                    "quantity": {
+                                        "type": "integer",
+                                        "description": "数量",
+                                        "minimum": 1
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Response"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/cart/toggle-check": {
+            "post": {
+                "tags": [
+                    "购物车模块"
+                ],
+                "summary": "切换选中状态",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "cart_id",
+                                    "checked"
+                                ],
+                                "properties": {
+                                    "cart_id": {
+                                        "type": "integer",
+                                        "description": "购物车项ID"
+                                    },
+                                    "checked": {
+                                        "type": "integer",
+                                        "description": "是否选中（0或1）",
+                                        "enum": [
+                                            0,
+                                            1
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Response"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/cart/check-all": {
+            "post": {
+                "tags": [
+                    "购物车模块"
+                ],
+                "summary": "全选/取消全选",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "checked"
+                                ],
+                                "properties": {
+                                    "checked": {
+                                        "type": "integer",
+                                        "description": "是否选中（0或1）",
+                                        "enum": [
+                                            0,
+                                            1
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Response"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/cart/delete": {
+            "post": {
+                "tags": [
+                    "购物车模块"
+                ],
+                "summary": "删除购物车商品",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "cart_ids"
+                                ],
+                                "properties": {
+                                    "cart_ids": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "integer"
+                                        },
+                                        "description": "购物车项ID数组"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Response"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/cart/clear": {
+            "post": {
+                "tags": [
+                    "购物车模块"
+                ],
+                "summary": "清空购物车",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Response"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/cart/count": {
+            "get": {
+                "tags": [
+                    "购物车模块"
+                ],
+                "summary": "获取购物车统计",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Response"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "securitySchemes": {
+            "bearerAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT"
+            }
+        },
+        "schemas": {
+            "Response": {
+                "type": "object",
+                "properties": {
+                    "code": {
+                        "type": "integer",
+                        "description": "状态码",
+                        "example": 200
+                    },
+                    "message": {
+                        "type": "string",
+                        "description": "提示信息",
+                        "example": "操作成功"
+                    },
+                    "data": {
+                        "type": "object",
+                        "description": "返回数据"
+                    },
+                    "timestamp": {
+                        "type": "integer",
+                        "description": "时间戳",
+                        "example": 1234567890
+                    }
+                }
+            }
+        }
+    }
+}

@@ -26,6 +26,7 @@ class OrderController extends BaseController
         try {
             $userId = $this->request->userId;
             $cartIds = $this->request->param('cart_ids'); // 购物车ID数组
+            $addressId = $this->request->param('address_id'); // 收货地址ID
             $receiverName = $this->request->param('receiver_name');
             $receiverPhone = $this->request->param('receiver_phone');
             $receiverAddress = $this->request->param('receiver_address');
@@ -35,8 +36,24 @@ class OrderController extends BaseController
                 return Response::validateError('请选择要购买的商品');
             }
 
-            if (!$receiverName || !$receiverPhone || !$receiverAddress) {
-                return Response::validateError('请填写完整的收货信息');
+            // 优先使用地址ID，如果没有则使用手动填写的地址
+            if ($addressId) {
+                $address = \app\model\UserAddress::where('id', $addressId)
+                    ->where('user_id', $userId)
+                    ->find();
+
+                if (!$address) {
+                    return Response::validateError('收货地址不存在');
+                }
+
+                $receiverName = $address->receiver_name;
+                $receiverPhone = $address->receiver_phone;
+                $receiverAddress = $address->full_address;
+            } else {
+                // 如果没有地址ID，验证手动填写的地址信息
+                if (!$receiverName || !$receiverPhone || !$receiverAddress) {
+                    return Response::validateError('请填写完整的收货信息');
+                }
             }
 
             // 开启事务
@@ -112,6 +129,7 @@ class OrderController extends BaseController
                         'order_no' => Order::generateOrderNo(),
                         'user_id' => $userId,
                         'shop_id' => $shopId,
+                        'address_id' => $addressId ?? null,
                         'total_amount' => $totalAmount,
                         'shipping_fee' => 0, // 暂时免运费
                         'actual_amount' => $totalAmount,

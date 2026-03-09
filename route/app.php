@@ -130,3 +130,27 @@ Route::group('api/order', function () {
     // 获取订单统计
     Route::get('statistics', 'OrderController/statistics');
 })->middleware(\app\middleware\Auth::class);
+
+// 收货地址相关路由（需要登录）
+Route::group('api/address', function () {
+    // 获取地址列表
+    Route::get('list', 'AddressController/index');
+
+    // 获取地址详情
+    Route::get('detail/:id', 'AddressController/read');
+
+    // 添加地址
+    Route::post('add', 'AddressController/save');
+
+    // 更新地址
+    Route::post('update/:id', 'AddressController/update');
+
+    // 删除地址
+    Route::post('delete/:id', 'AddressController/delete');
+
+    // 设置默认地址
+    Route::post('set-default/:id', 'AddressController/setDefault');
+
+    // 获取默认地址
+    Route::get('default', 'AddressController/getDefault');
+})->middleware(\app\middleware\Auth::class);
