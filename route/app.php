@@ -259,3 +259,12 @@ Route::group('api/user', function () {
     // 获取用户统计信息
     Route::get('statistics', 'UserController/statistics');
 })->middleware(\app\middleware\Auth::class);
+
+// 当季农产品相关路由
+Route::group('api/seasonal-product', function () {
+    // 获取当季农产品列表
+    Route::get('list', 'SeasonalProductController/list');
+
+    // 获取所有季节的农产品
+    Route::get('all', 'SeasonalProductController/all');
+});
