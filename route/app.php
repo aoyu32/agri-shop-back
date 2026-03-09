@@ -154,3 +154,27 @@ Route::group('api/address', function () {
     // 获取默认地址
     Route::get('default', 'AddressController/getDefault');
 })->middleware(\app\middleware\Auth::class);
+
+// 收藏相关路由（需要登录）
+Route::group('api/favorite', function () {
+    // 添加收藏
+    Route::post('add', 'FavoriteController/add');
+
+    // 取消收藏
+    Route::post('remove', 'FavoriteController/remove');
+
+    // 切换收藏状态
+    Route::post('toggle', 'FavoriteController/toggle');
+
+    // 获取收藏列表
+    Route::get('list', 'FavoriteController/list');
+
+    // 检查是否已收藏
+    Route::get('check', 'FavoriteController/check');
+
+    // 批量删除收藏
+    Route::post('batch-remove', 'FavoriteController/batchRemove');
+
+    // 获取收藏统计
+    Route::get('statistics', 'FavoriteController/statistics');
+})->middleware(\app\middleware\Auth::class);
