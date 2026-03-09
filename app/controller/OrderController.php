@@ -25,16 +25,12 @@ class OrderController extends BaseController
     {
         try {
             $userId = $this->request->userId;
-            $cartIds = $this->request->param('cart_ids'); // 购物车ID数组
+            $type = $this->request->param('type', 'cart'); // 订单类型：cart 或 buy_now
             $addressId = $this->request->param('address_id'); // 收货地址ID
             $receiverName = $this->request->param('receiver_name');
             $receiverPhone = $this->request->param('receiver_phone');
             $receiverAddress = $this->request->param('receiver_address');
             $remark = $this->request->param('remark', '');
-
-            if (empty($cartIds)) {
-                return Response::validateError('请选择要购买的商品');
-            }
 
             // 优先使用地址ID，如果没有则使用手动填写的地址
             if ($addressId) {
@@ -60,78 +56,62 @@ class OrderController extends BaseController
             Db::startTrans();
 
             try {
-                // 获取购物车商品
-                $cartItems = Cart::where('user_id', $userId)
-                    ->whereIn('id', $cartIds)
-                    ->with(['product', 'spec'])
-                    ->select();
-
-                if ($cartItems->isEmpty()) {
-                    throw new \Exception('购物车商品不存在');
-                }
-
-                // 按店铺分组创建订单
-                $shopOrders = [];
-                foreach ($cartItems as $item) {
-                    $shopId = $item->product->shop_id;
-                    if (!isset($shopOrders[$shopId])) {
-                        $shopOrders[$shopId] = [];
-                    }
-                    $shopOrders[$shopId][] = $item;
-                }
-
                 $orderList = [];
 
-                // 为每个店铺创建订单
-                foreach ($shopOrders as $shopId => $items) {
-                    $totalAmount = 0;
-                    $orderItems = [];
+                if ($type === 'buy_now') {
+                    // 立即购买模式
+                    $productId = (int)$this->request->param('product_id');
+                    $specId = $this->request->param('spec_id') ? (int)$this->request->param('spec_id') : null;
+                    $quantity = (int)$this->request->param('quantity', 1);
 
-                    // 计算订单金额并准备订单商品数据
-                    foreach ($items as $item) {
-                        $product = $item->product;
-                        $spec = $item->spec;
-
-                        // 检查商品状态
-                        if ($product->status !== 'on_sale') {
-                            throw new \Exception("商品【{$product->name}】已下架");
-                        }
-
-                        // 计算价格
-                        $price = (float)$product->price;
-                        if ($spec) {
-                            $price += (float)$spec->price_diff;
-                        }
-
-                        // 检查库存
-                        $stock = $spec ? $spec->stock : $product->stock;
-                        if ($stock < $item->quantity) {
-                            throw new \Exception("商品【{$product->name}】库存不足");
-                        }
-
-                        $itemTotal = $price * $item->quantity;
-                        $totalAmount += $itemTotal;
-
-                        $orderItems[] = [
-                            'product_id' => $product->id,
-                            'product_name' => $product->name,
-                            'product_image' => $product->main_image,
-                            'spec_id' => $spec ? $spec->id : null,
-                            'spec_label' => $spec ? $spec->spec_label : null,
-                            'price' => $price,
-                            'quantity' => $item->quantity,
-                            'total_price' => $itemTotal
-                        ];
+                    if (!$productId || $quantity <= 0) {
+                        throw new \Exception('商品信息不完整');
                     }
+
+                    // 获取商品信息
+                    $product = Product::with(['shop'])->find($productId);
+                    if (!$product) {
+                        throw new \Exception('商品不存在');
+                    }
+
+                    // 检查商品状态
+                    if ($product->status !== 'on_sale') {
+                        throw new \Exception("商品【{$product->name}】已下架");
+                    }
+
+                    // 获取规格信息
+                    $spec = null;
+                    if ($specId) {
+                        $spec = ProductSpec::where('id', $specId)
+                            ->where('product_id', $productId)
+                            ->find();
+                        if (!$spec) {
+                            throw new \Exception('商品规格不存在');
+                        }
+                    }
+
+                    // 计算价格
+                    $price = (float)$product->price;
+                    if ($spec) {
+                        $price += (float)$spec->price_diff;
+                    }
+
+                    // 检查库存
+                    $stock = $spec ? $spec->stock : $product->stock;
+                    if ($stock < $quantity) {
+                        throw new \Exception("商品【{$product->name}】库存不足");
+                    }
+
+                    $totalAmount = $price * $quantity;
 
                     // 创建订单
                     $order = Order::create([
                         'order_no' => Order::generateOrderNo(),
                         'user_id' => $userId,
-                        'shop_id' => $shopId,
+                        'shop_id' => $product->shop_id,
                         'address_id' => $addressId ?? null,
                         'total_amount' => $totalAmount,
-                        'shipping_fee' => 0, // 暂时免运费
+                        'shipping_fee' => 0,
                         'actual_amount' => $totalAmount,
                         'receiver_name' => $receiverName,
                         'receiver_phone' => $receiverPhone,
@@ -141,22 +121,27 @@ class OrderController extends BaseController
                     ]);
 
                     // 创建订单商品
-                    foreach ($orderItems as &$orderItem) {
-                        $orderItem['order_id'] = $order->id;
-                    }
-                    (new OrderItem())->saveAll($orderItems);
+                    OrderItem::create([
+                        'order_id' => $order->id,
+                        'product_id' => $product->id,
+                        'product_name' => $product->name,
+                        'product_image' => $product->main_image,
+                        'spec_id' => $spec ? $spec->id : null,
+                        'spec_label' => $spec ? $spec->spec_label : null,
+                        'price' => $price,
+                        'quantity' => $quantity,
+                        'total_price' => $totalAmount
+                    ]);
 
                     // 扣减库存
-                    foreach ($items as $item) {
-                        if ($item->spec_id) {
-                            ProductSpec::where('id', $item->spec_id)
-                                ->dec('stock', $item->quantity)
-                                ->update();
-                        } else {
-                            Product::where('id', $item->product_id)
-                                ->dec('stock', $item->quantity)
-                                ->update();
-                        }
+                    if ($specId) {
+                        ProductSpec::where('id', $specId)
+                            ->dec('stock', $quantity)
+                            ->update();
+                    } else {
+                        Product::where('id', $productId)
+                            ->dec('stock', $quantity)
+                            ->update();
                     }
 
                     $orderList[] = [
@@ -164,12 +149,123 @@ class OrderController extends BaseController
                         'order_no' => $order->order_no,
                         'total_amount' => $order->actual_amount
                     ];
-                }
+                } else {
+                    // 购物车模式
+                    $cartIds = $this->request->param('cart_ids');
 
-                // 删除购物车商品
-                Cart::where('user_id', $userId)
-                    ->whereIn('id', $cartIds)
-                    ->delete();
+                    if (empty($cartIds)) {
+                        throw new \Exception('请选择要购买的商品');
+                    }
+
+                    // 获取购物车商品
+                    $cartItems = Cart::where('user_id', $userId)
+                        ->whereIn('id', $cartIds)
+                        ->with(['product', 'spec'])
+                        ->select();
+
+                    if ($cartItems->isEmpty()) {
+                        throw new \Exception('购物车商品不存在');
+                    }
+
+                    // 按店铺分组创建订单
+                    $shopOrders = [];
+                    foreach ($cartItems as $item) {
+                        $shopId = $item->product->shop_id;
+                        if (!isset($shopOrders[$shopId])) {
+                            $shopOrders[$shopId] = [];
+                        }
+                        $shopOrders[$shopId][] = $item;
+                    }
+
+                    // 为每个店铺创建订单
+                    foreach ($shopOrders as $shopId => $items) {
+                        $totalAmount = 0;
+                        $orderItems = [];
+
+                        // 计算订单金额并准备订单商品数据
+                        foreach ($items as $item) {
+                            $product = $item->product;
+                            $spec = $item->spec;
+
+                            // 检查商品状态
+                            if ($product->status !== 'on_sale') {
+                                throw new \Exception("商品【{$product->name}】已下架");
+                            }
+
+                            // 计算价格
+                            $price = (float)$product->price;
+                            if ($spec) {
+                                $price += (float)$spec->price_diff;
+                            }
+
+                            // 检查库存
+                            $stock = $spec ? $spec->stock : $product->stock;
+                            if ($stock < $item->quantity) {
+                                throw new \Exception("商品【{$product->name}】库存不足");
+                            }
+
+                            $itemTotal = $price * $item->quantity;
+                            $totalAmount += $itemTotal;
+
+                            $orderItems[] = [
+                                'product_id' => $product->id,
+                                'product_name' => $product->name,
+                                'product_image' => $product->main_image,
+                                'spec_id' => $spec ? $spec->id : null,
+                                'spec_label' => $spec ? $spec->spec_label : null,
+                                'price' => $price,
+                                'quantity' => $item->quantity,
+                                'total_price' => $itemTotal
+                            ];
+                        }
+
+                        // 创建订单
+                        $order = Order::create([
+                            'order_no' => Order::generateOrderNo(),
+                            'user_id' => $userId,
+                            'shop_id' => $shopId,
+                            'address_id' => $addressId ?? null,
+                            'total_amount' => $totalAmount,
+                            'shipping_fee' => 0,
+                            'actual_amount' => $totalAmount,
+                            'receiver_name' => $receiverName,
+                            'receiver_phone' => $receiverPhone,
+                            'receiver_address' => $receiverAddress,
+                            'status' => 'pending',
+                            'remark' => $remark
+                        ]);
+
+                        // 创建订单商品
+                        foreach ($orderItems as &$orderItem) {
+                            $orderItem['order_id'] = $order->id;
+                        }
+                        (new OrderItem())->saveAll($orderItems);
+
+                        // 扣减库存
+                        foreach ($items as $item) {
+                            if ($item->spec_id) {
+                                ProductSpec::where('id', $item->spec_id)
+                                    ->dec('stock', $item->quantity)
+                                    ->update();
+                            } else {
+                                Product::where('id', $item->product_id)
+                                    ->dec('stock', $item->quantity)
+                                    ->update();
+                            }
+                        }
+
+                        $orderList[] = [
+                            'order_id' => $order->id,
+                            'order_no' => $order->order_no,
+                            'total_amount' => $order->actual_amount
+                        ];
+                    }
+
+                    // 删除购物车商品
+                    Cart::where('user_id', $userId)
+                        ->whereIn('id', $cartIds)
+                        ->delete();
+                }
 
                 Db::commit();
 
