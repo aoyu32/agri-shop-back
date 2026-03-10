@@ -286,17 +286,29 @@ Route::group('api/merchant/order', function () {
     // 发货
     Route::post('ship', 'MerchantOrderController/ship');
 
+    // 删除订单
+    Route::post('delete', 'MerchantOrderController/delete');
+
+    // 获取订单统计
+    Route::get('statistics', 'MerchantOrderController/statistics');
+
+    // 获取退款列表
+    Route::get('refund-list', 'MerchantOrderController/refundList');
+
+    // 获取退款详情
+    Route::get('refund-detail', 'MerchantOrderController/refundDetail');
+
     // 同意退款
     Route::post('approve-refund', 'MerchantOrderController/approveRefund');
 
     // 拒绝退款
     Route::post('reject-refund', 'MerchantOrderController/rejectRefund');
 
-    // 删除订单
-    Route::post('delete', 'MerchantOrderController/delete');
+    // 确认退款完成
+    Route::post('confirm-refund', 'MerchantOrderController/confirmRefund');
 
-    // 获取订单统计
-    Route::get('statistics', 'MerchantOrderController/statistics');
+    // 删除退款记录
+    Route::post('delete-refund', 'MerchantOrderController/deleteRefund');
 })->middleware(\app\middleware\Auth::class);
 
 

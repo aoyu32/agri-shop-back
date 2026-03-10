@@ -193,16 +193,78 @@ class MerchantOrderController extends BaseController
     }
 
     /**
-     * 同意退款
+     * 获取农户退款列表
      */
-    public function approveRefund()
+    public function refundList()
     {
         try {
             $userId = $this->request->userId;
-            $orderId = $this->request->param('order_id');
 
-            if (!$orderId) {
-                return Response::validateError('订单ID不能为空');
+            // 获取农户的店铺
+            $shop = Shop::where('user_id', $userId)->find();
+            if (!$shop) {
+                return Response::error('您还没有开通店铺', [], 40001);
+            }
+
+            // 检查审核状态
+            if ($shop->audit_status === 0) {
+                return Response::error('您的店铺正在审核中，请耐心等待', [], 40002);
+            }
+
+            if ($shop->audit_status === 2) {
+                return Response::error('您的店铺审核未通过：' . $shop->audit_reason, [], 40003);
+            }
+
+            // 获取筛选参数
+            $status = $this->request->param('status', ''); // pending, approved, rejected, refunded
+            $page = (int)$this->request->param('page', 1);
+            $pageSize = (int)$this->request->param('page_size', 10);
+
+            // 构建查询
+            $query = \app\model\OrderRefund::with(['order.items', 'user'])
+                ->where('shop_id', $shop->id)
+                ->order('created_at', 'desc');
+
+            // 状态筛选
+            if ($status) {
+                $query->where('status', $status);
+            }
+
+            // 分页查询
+            $refunds = $query->paginate([
+                'list_rows' => $pageSize,
+                'page' => $page
+            ]);
+
+            // 格式化退款数据
+            $list = [];
+            foreach ($refunds->items() as $refund) {
+                $list[] = $this->formatRefund($refund);
+            }
+
+            return Response::success([
+                'list' => $list,
+                'total' => $refunds->total(),
+                'page' => $page,
+                'page_size' => $pageSize
+            ]);
+        } catch (\Exception $e) {
+            \think\facade\Log::error('获取退款列表失败：' . $e->getMessage());
+            return Response::error('获取退款列表失败：' . $e->getMessage());
+        }
+    }
+
+    /**
+     * 获取退款详情
+     */
+    public function refundDetail()
+    {
+        try {
+            $userId = $this->request->userId;
+            $refundId = $this->request->param('refund_id');
+
+            if (!$refundId) {
+                return Response::validateError('退款ID不能为空');
             }
 
             $shop = Shop::where('user_id', $userId)->find();
@@ -210,31 +272,73 @@ class MerchantOrderController extends BaseController
                 return Response::error('您还没有开通店铺');
             }
 
-            $order = Order::where('id', $orderId)
+            $refund = \app\model\OrderRefund::with(['order.items', 'user'])
+                ->where('id', $refundId)
                 ->where('shop_id', $shop->id)
                 ->find();
 
-            if (!$order) {
-                return Response::error('订单不存在');
+            if (!$refund) {
+                return Response::error('退款记录不存在');
             }
 
-            if (empty($order->refund_status)) {
-                return Response::error('该订单没有退款申请');
+            return Response::success($this->formatRefund($refund, true));
+        } catch (\Exception $e) {
+            return Response::error('获取退款详情失败：' . $e->getMessage());
+        }
+    }
+
+    /**
+     * 同意退款
+     */
+    public function approveRefund()
+    {
+        try {
+            $userId = $this->request->userId;
+            $refundId = $this->request->param('refund_id');
+
+            if (!$refundId) {
+                return Response::validateError('退款ID不能为空');
             }
 
-            if ($order->refund_type === 'refund') {
-                $order->refund_status = 'approved';
-                $order->refund_approved_at = date('Y-m-d H:i:s');
-                $message = '已同意退款申请，系统将自动退款给买家';
-            } else {
-                $order->refund_status = 'approved_waiting_return';
-                $order->refund_approved_at = date('Y-m-d H:i:s');
-                $message = '已同意退货申请，请等待买家退货';
+            $shop = Shop::where('user_id', $userId)->find();
+            if (!$shop) {
+                return Response::error('您还没有开通店铺');
             }
 
-            $order->save();
+            $refund = \app\model\OrderRefund::where('id', $refundId)
+                ->where('shop_id', $shop->id)
+                ->find();
 
-            return Response::success([], $message);
+            if (!$refund) {
+                return Response::error('退款记录不存在');
+            }
+
+            if ($refund->status !== 'pending') {
+                return Response::error('只能处理待审核的退款申请');
+            }
+
+            // 开始事务
+            \app\model\OrderRefund::startTrans();
+            try {
+                // 更新退款状态
+                $refund->status = 'approved';
+                $refund->save();
+
+                // 更新订单退款状态
+                $order = Order::find($refund->order_id);
+                if ($order) {
+                    $order->refund_status = 'approved';
+                    $order->save();
+                }
+
+                \app\model\OrderRefund::commit();
+
+                $message = $refund->refund_type == 1 ? '已同意退款申请' : '已同意退货退款申请';
+                return Response::success([], $message);
+            } catch (\Exception $e) {
+                \app\model\OrderRefund::rollback();
+                throw $e;
+            }
         } catch (\Exception $e) {
             return Response::error('处理退款申请失败：' . $e->getMessage());
         }
@@ -247,11 +351,11 @@ class MerchantOrderController extends BaseController
     {
         try {
             $userId = $this->request->userId;
-            $orderId = $this->request->param('order_id');
+            $refundId = $this->request->param('refund_id');
             $rejectReason = $this->request->param('reject_reason');
 
-            if (!$orderId) {
-                return Response::validateError('订单ID不能为空');
+            if (!$refundId) {
+                return Response::validateError('退款ID不能为空');
             }
 
             if (!$rejectReason) {
@@ -263,27 +367,195 @@ class MerchantOrderController extends BaseController
                 return Response::error('您还没有开通店铺');
             }
 
-            $order = Order::where('id', $orderId)
+            $refund = \app\model\OrderRefund::where('id', $refundId)
                 ->where('shop_id', $shop->id)
                 ->find();
 
-            if (!$order) {
-                return Response::error('订单不存在');
+            if (!$refund) {
+                return Response::error('退款记录不存在');
             }
 
-            if (empty($order->refund_status)) {
-                return Response::error('该订单没有退款申请');
+            if ($refund->status !== 'pending') {
+                return Response::error('只能处理待审核的退款申请');
             }
 
-            $order->refund_status = 'rejected';
-            $order->refund_reject_reason = $rejectReason;
-            $order->refund_rejected_at = date('Y-m-d H:i:s');
-            $order->save();
+            // 开始事务
+            \app\model\OrderRefund::startTrans();
+            try {
+                // 更新退款状态
+                $refund->status = 'rejected';
+                $refund->reject_reason = $rejectReason;
+                $refund->save();
 
-            return Response::success([], '已拒绝退款申请');
+                // 更新订单退款状态
+                $order = Order::find($refund->order_id);
+                if ($order) {
+                    $order->refund_status = 'rejected';
+                    $order->save();
+                }
+
+                \app\model\OrderRefund::commit();
+                return Response::success([], '已拒绝退款申请');
+            } catch (\Exception $e) {
+                \app\model\OrderRefund::rollback();
+                throw $e;
+            }
         } catch (\Exception $e) {
             return Response::error('处理退款申请失败：' . $e->getMessage());
         }
+    }
+
+    /**
+     * 确认退款完成
+     */
+    public function confirmRefund()
+    {
+        try {
+            $userId = $this->request->userId;
+            $refundId = $this->request->param('refund_id');
+
+            if (!$refundId) {
+                return Response::validateError('退款ID不能为空');
+            }
+
+            $shop = Shop::where('user_id', $userId)->find();
+            if (!$shop) {
+                return Response::error('您还没有开通店铺');
+            }
+
+            $refund = \app\model\OrderRefund::where('id', $refundId)
+                ->where('shop_id', $shop->id)
+                ->find();
+
+            if (!$refund) {
+                return Response::error('退款记录不存在');
+            }
+
+            if ($refund->status !== 'approved') {
+                return Response::error('只能确认已同意的退款');
+            }
+
+            // 开始事务
+            \app\model\OrderRefund::startTrans();
+            try {
+                // 更新退款状态
+                $refund->status = 'refunded';
+                $refund->refund_time = date('Y-m-d H:i:s');
+                $refund->save();
+
+                // 更新订单退款状态
+                $order = Order::find($refund->order_id);
+                if ($order) {
+                    $order->refund_status = 'refunded';
+                    $order->save();
+                }
+
+                \app\model\OrderRefund::commit();
+                return Response::success([], '退款已完成');
+            } catch (\Exception $e) {
+                \app\model\OrderRefund::rollback();
+                throw $e;
+            }
+        } catch (\Exception $e) {
+            return Response::error('确认退款失败：' . $e->getMessage());
+        }
+    }
+
+    /**
+     * 删除退款记录
+     */
+    public function deleteRefund()
+    {
+        try {
+            $userId = $this->request->userId;
+            $refundId = $this->request->param('refund_id');
+
+            if (!$refundId) {
+                return Response::validateError('退款ID不能为空');
+            }
+
+            $shop = Shop::where('user_id', $userId)->find();
+            if (!$shop) {
+                return Response::error('您还没有开通店铺');
+            }
+
+            $refund = \app\model\OrderRefund::where('id', $refundId)
+                ->where('shop_id', $shop->id)
+                ->find();
+
+            if (!$refund) {
+                return Response::error('退款记录不存在');
+            }
+
+            // 只能删除已拒绝、已退款、已关闭的退款记录
+            if (!in_array($refund->status, ['rejected', 'refunded', 'closed'])) {
+                return Response::error('只能删除已拒绝、已退款或已关闭的退款记录');
+            }
+
+            $refund->delete();
+            return Response::success([], '删除成功');
+        } catch (\Exception $e) {
+            return Response::error('删除失败：' . $e->getMessage());
+        }
+    }
+
+    /**
+     * 格式化退款数据
+     */
+    private function formatRefund($refund, $detail = false)
+    {
+        $images = $refund->refund_images;
+        if (is_string($images)) {
+            $images = json_decode($images, true) ?? [];
+        }
+        if (!is_array($images)) {
+            $images = [];
+        }
+
+        $data = [
+            'id' => $refund->id,
+            'refund_no' => $refund->refund_no,
+            'order_id' => $refund->order_id,
+            'order_no' => $refund->order_no,
+            'refund_type' => $refund->refund_type,
+            'refund_type_text' => $refund->refund_type == 1 ? '仅退款' : '退货退款',
+            'refund_reason' => $refund->refund_reason,
+            'refund_amount' => $refund->refund_amount,
+            'refund_description' => $refund->refund_description,
+            'refund_images' => $images,
+            'status' => $refund->status,
+            'status_text' => $this->getRefundStatusText($refund->status),
+            'reject_reason' => $refund->reject_reason,
+            'created_at' => $refund->created_at,
+            'buyer' => [
+                'name' => $refund->user->nickname ?? $refund->user->username ?? '未知用户',
+                'phone' => $refund->user->phone ?? '',
+                'avatar' => $refund->user->avatar ?? ''
+            ]
+        ];
+
+        if ($detail && $refund->order) {
+            $data['order_info'] = [
+                'order_no' => $refund->order->order_no,
+                'total_amount' => $refund->order->total_amount,
+                'actual_amount' => $refund->order->actual_amount,
+                'receiver_name' => $refund->order->receiver_name,
+                'receiver_phone' => $refund->order->receiver_phone,
+                'receiver_address' => $refund->order->receiver_address,
+                'items' => $refund->order->items->map(function ($item) {
+                    return [
+                        'product_name' => $item->product_name,
+                        'product_image' => $item->product_image,
+                        'spec_label' => $item->spec_label,
+                        'price' => $item->price,
+                        'quantity' => $item->quantity,
+                        'total_price' => $item->total_price
+                    ];
+                })
+            ];
+        }
+
+        return $data;
     }
 
     /**
@@ -424,11 +696,11 @@ class MerchantOrderController extends BaseController
     private function getRefundStatusText($status)
     {
         $statusMap = [
-            'pending' => '待商家处理',
-            'approved' => '商家已同意，退款处理中',
-            'approved_waiting_return' => '商家已同意，等待买家退货',
-            'rejected' => '商家已拒绝',
-            'completed' => '退款已完成'
+            'pending' => '待审核',
+            'approved' => '已同意',
+            'rejected' => '已拒绝',
+            'refunded' => '已退款',
+            'closed' => '已关闭'
         ];
 
         return $statusMap[$status] ?? '未知状态';
