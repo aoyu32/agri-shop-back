@@ -176,14 +176,14 @@ class MerchantOrderController extends BaseController
                 return Response::error('订单不存在');
             }
 
-            if ($order->status !== 'paid') {
-                return Response::error('只有已支付的订单才能发货');
+            if (!in_array($order->status, ['pending', 'paid'])) {
+                return Response::error('只有待发货订单才能发货');
             }
 
             $order->status = 'shipped';
             $order->logistics_company = $logistics;
             $order->tracking_no = $trackingNo;
-            $order->shipped_at = date('Y-m-d H:i:s');
+            $order->ship_time = date('Y-m-d H:i:s');
             $order->save();
 
             return Response::success([], '发货成功');
@@ -374,7 +374,9 @@ class MerchantOrderController extends BaseController
             'total_amount' => $order->actual_amount,
             'status' => $order->status,
             'create_time' => $order->created_at,
-            'address' => $order->receiver_address
+            'address' => $order->receiver_address,
+            'logistics_company' => $order->logistics_company,
+            'tracking_no' => $order->tracking_no
         ];
 
         foreach ($order->items as $item) {
@@ -409,8 +411,8 @@ class MerchantOrderController extends BaseController
             $data['shipping_fee'] = $order->shipping_fee;
             $data['logistics_company'] = $order->logistics_company;
             $data['tracking_no'] = $order->tracking_no;
-            $data['shipped_at'] = $order->shipped_at;
-            $data['completed_at'] = $order->completed_at;
+            $data['ship_time'] = $order->ship_time;
+            $data['complete_time'] = $order->complete_time;
         }
 
         return $data;
