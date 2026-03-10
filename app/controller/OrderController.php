@@ -297,7 +297,12 @@ class OrderController extends BaseController
 
             // 状态筛选
             if ($status && $status !== 'all') {
-                $query->where('status', $status);
+                if ($status === 'refund') {
+                    // 退款订单：查询有退款申请的订单
+                    $query->whereNotNull('refund_status');
+                } else {
+                    $query->where('status', $status);
+                }
             }
 
             $total = $query->count();
@@ -305,10 +310,24 @@ class OrderController extends BaseController
                 ->page($page, $limit)
                 ->select();
 
+            // 如果是退款列表，需要关联退款记录
+            $refundMap = [];
+            if ($status === 'refund') {
+                $orderIds = $list->column('id');
+                if (!empty($orderIds)) {
+                    $refunds = \app\model\OrderRefund::whereIn('order_id', $orderIds)
+                        ->where('user_id', $userId)
+                        ->select();
+                    foreach ($refunds as $refund) {
+                        $refundMap[$refund->order_id] = $refund->id;
+                    }
+                }
+            }
+
             // 格式化数据
             $orders = [];
             foreach ($list as $order) {
-                $orders[] = [
+                $orderData = [
                     'id' => $order->id,
                     'order_no' => $order->order_no,
                     'shop_id' => $order->shop_id,
@@ -319,6 +338,7 @@ class OrderController extends BaseController
                     'status' => $order->status,
                     'status_text' => $this->getStatusText($order->status),
                     'is_reviewed' => $order->is_reviewed,
+                    'refund_status' => $order->refund_status,
                     'receiver_name' => $order->receiver_name,
                     'receiver_phone' => $order->receiver_phone,
                     'receiver_address' => $order->receiver_address,
@@ -339,6 +359,13 @@ class OrderController extends BaseController
                         ];
                     })
                 ];
+
+                // 如果是退款列表，添加退款ID
+                if ($status === 'refund' && isset($refundMap[$order->id])) {
+                    $orderData['refund_id'] = $refundMap[$order->id];
+                }
+
+                $orders[] = $orderData;
             }
 
             return Response::success([

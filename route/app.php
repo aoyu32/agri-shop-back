@@ -323,3 +323,18 @@ Route::group('api/review', function () {
     // 获取商品评价列表（公开接口，不需要登录）
     Route::get('product-reviews', 'ReviewController/productReviews');
 });
+
+// 退款相关路由
+Route::group('api/refund', function () {
+    // 申请退款（需要登录）
+    Route::post('apply', 'RefundController/apply')->middleware(\app\middleware\Auth::class);
+
+    // 获取我的退款列表（需要登录）
+    Route::get('my-list', 'RefundController/myList')->middleware(\app\middleware\Auth::class);
+
+    // 获取退款详情（需要登录）
+    Route::get('detail', 'RefundController/detail')->middleware(\app\middleware\Auth::class);
+
+    // 取消退款申请（需要登录）
+    Route::post('cancel', 'RefundController/cancel')->middleware(\app\middleware\Auth::class);
+});
