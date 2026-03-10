@@ -314,6 +314,12 @@ Route::group('api/review', function () {
     // 删除评价（需要登录）
     Route::post('delete', 'ReviewController/deleteReview')->middleware(\app\middleware\Auth::class);
 
+    // 点赞评价（需要登录）
+    Route::post('like', 'ReviewController/likeReview')->middleware(\app\middleware\Auth::class);
+
+    // 取消点赞评价（需要登录）
+    Route::post('unlike', 'ReviewController/unlikeReview')->middleware(\app\middleware\Auth::class);
+
     // 获取商品评价列表（公开接口，不需要登录）
     Route::get('product-reviews', 'ReviewController/productReviews');
 });

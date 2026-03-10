@@ -25,6 +25,7 @@ class OrderReview extends Model
         'content'        => 'string',
         'images'         => 'string',
         'is_anonymous'   => 'int',
+        'likes_count'    => 'int',
         'reply_content'  => 'string',
         'reply_time'     => 'string',
         'created_at'     => 'string',

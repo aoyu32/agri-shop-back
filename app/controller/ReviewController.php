@@ -9,6 +9,7 @@ use app\model\Order;
 use app\model\OrderItem;
 use app\model\OrderReview;
 use app\model\Product;
+use app\model\ReviewLike;
 use app\common\Response;
 
 /**
@@ -171,6 +172,7 @@ class ReviewController extends BaseController
     public function productReviews()
     {
         try {
+            $userId = $this->request->userId ?? 0; // 可能未登录
             $productId = $this->request->param('product_id');
             $page = (int)$this->request->param('page', 1);
             $pageSize = (int)$this->request->param('page_size', 10);
@@ -190,7 +192,7 @@ class ReviewController extends BaseController
 
             $list = [];
             foreach ($reviews->items() as $review) {
-                $list[] = $this->formatReview($review);
+                $list[] = $this->formatReview($review, $userId);
             }
 
             return Response::success([
@@ -295,6 +297,115 @@ class ReviewController extends BaseController
     }
 
     /**
+     * 点赞评价
+     */
+    public function likeReview()
+    {
+        try {
+            $userId = $this->request->userId;
+            $reviewId = $this->request->param('review_id');
+
+            if (!$reviewId) {
+                return Response::validateError('评价ID不能为空');
+            }
+
+            // 检查评价是否存在
+            $review = OrderReview::find($reviewId);
+            if (!$review) {
+                return Response::error('评价不存在');
+            }
+
+            // 检查是否已经点赞
+            $existingLike = ReviewLike::where('review_id', $reviewId)
+                ->where('user_id', $userId)
+                ->find();
+
+            if ($existingLike) {
+                return Response::error('您已经点赞过了');
+            }
+
+            // 开始事务
+            ReviewLike::startTrans();
+            try {
+                // 创建点赞记录
+                ReviewLike::create([
+                    'review_id' => $reviewId,
+                    'user_id' => $userId
+                ]);
+
+                // 增加评价的点赞数
+                $review->likes_count = $review->likes_count + 1;
+                $review->save();
+
+                ReviewLike::commit();
+                return Response::success([
+                    'likes_count' => $review->likes_count
+                ], '点赞成功');
+            } catch (\Exception $e) {
+                ReviewLike::rollback();
+                throw $e;
+            }
+        } catch (\Exception $e) {
+            \think\facade\Log::error('点赞评价失败：' . $e->getMessage());
+            return Response::error('点赞评价失败：' . $e->getMessage());
+        }
+    }
+
+    /**
+     * 取消点赞评价
+     */
+    public function unlikeReview()
+    {
+        try {
+            $userId = $this->request->userId;
+            $reviewId = $this->request->param('review_id');
+
+            if (!$reviewId) {
+                return Response::validateError('评价ID不能为空');
+            }
+
+            // 检查评价是否存在
+            $review = OrderReview::find($reviewId);
+            if (!$review) {
+                return Response::error('评价不存在');
+            }
+
+            // 检查是否已经点赞
+            $existingLike = ReviewLike::where('review_id', $reviewId)
+                ->where('user_id', $userId)
+                ->find();
+
+            if (!$existingLike) {
+                return Response::error('您还未点赞');
+            }
+
+            // 开始事务
+            ReviewLike::startTrans();
+            try {
+                // 删除点赞记录
+                $existingLike->delete();
+
+                // 减少评价的点赞数
+                if ($review->likes_count > 0) {
+                    $review->likes_count = $review->likes_count - 1;
+                    $review->save();
+                }
+
+                ReviewLike::commit();
+                return Response::success([
+                    'likes_count' => $review->likes_count
+                ], '取消点赞成功');
+            } catch (\Exception $e) {
+                ReviewLike::rollback();
+                throw $e;
+            }
+        } catch (\Exception $e) {
+            \think\facade\Log::error('取消点赞评价失败：' . $e->getMessage());
+            return Response::error('取消点赞评价失败：' . $e->getMessage());
+        }
+    }
+
+    /**
      * 格式化待评价订单数据
      */
     private function formatOrderForReview($order)
@@ -324,7 +435,7 @@ class ReviewController extends BaseController
     /**
      * 格式化评价数据
      */
-    private function formatReview($review)
+    private function formatReview($review, $currentUserId = 0)
     {
         // 确保 images 是数组格式
         $images = $review->images;
@@ -335,6 +446,16 @@ class ReviewController extends BaseController
             $images = [];
         }
 
+        // 检查当前用户是否已点赞
+        $isLiked = false;
+        if ($currentUserId > 0) {
+            $isLiked = ReviewLike::where('review_id', $review->id)
+                ->where('user_id', $currentUserId)
+                ->count() > 0;
+        }
+
+        $likesCount = (int)($review->likes_count ?? 0);
+
         return [
             'id' => $review->id,
             'user_name' => $review->is_anonymous ? '匿名用户' : ($review->user->nickname ?? '用户'),
@@ -342,6 +463,8 @@ class ReviewController extends BaseController
             'rating' => $review->rating,
             'content' => $review->content,
             'images' => $images,
+            'likes_count' => $likesCount,
+            'is_liked' => $isLiked,
             'reply_content' => $review->reply_content,
             'reply_time' => $review->reply_time,
             'created_at' => $review->created_at
