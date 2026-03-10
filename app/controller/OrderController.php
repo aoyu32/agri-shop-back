@@ -318,6 +318,7 @@ class OrderController extends BaseController
                     'actual_amount' => (float)$order->actual_amount,
                     'status' => $order->status,
                     'status_text' => $this->getStatusText($order->status),
+                    'is_reviewed' => $order->is_reviewed,
                     'receiver_name' => $order->receiver_name,
                     'receiver_phone' => $order->receiver_phone,
                     'receiver_address' => $order->receiver_address,

@@ -298,3 +298,22 @@ Route::group('api/merchant/order', function () {
     // 获取订单统计
     Route::get('statistics', 'MerchantOrderController/statistics');
 })->middleware(\app\middleware\Auth::class);
+
+
+// 评价相关路由
+Route::group('api/review', function () {
+    // 提交订单评价（需要登录）
+    Route::post('submit', 'ReviewController/submit')->middleware(\app\middleware\Auth::class);
+
+    // 获取待评价订单列表（需要登录）
+    Route::get('pending-list', 'ReviewController/pendingList')->middleware(\app\middleware\Auth::class);
+
+    // 获取我的评价列表（需要登录）
+    Route::get('my-reviews', 'ReviewController/myReviews')->middleware(\app\middleware\Auth::class);
+
+    // 删除评价（需要登录）
+    Route::post('delete', 'ReviewController/deleteReview')->middleware(\app\middleware\Auth::class);
+
+    // 获取商品评价列表（公开接口，不需要登录）
+    Route::get('product-reviews', 'ReviewController/productReviews');
+});
