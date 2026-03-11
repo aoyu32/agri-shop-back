@@ -527,11 +527,28 @@ class OrderController extends BaseController
                 return Response::error('当前订单状态不允许确认收货');
             }
 
-            $order->status = 'completed';
-            $order->complete_time = date('Y-m-d H:i:s');
-            $order->save();
+            // 开始事务
+            Order::startTrans();
+            try {
+                // 更新订单状态
+                $order->status = 'completed';
+                $order->complete_time = date('Y-m-d H:i:s');
+                $order->save();
 
-            return Response::success([], '确认收货成功');
+                // 增加商品销量
+                $orderItems = \app\model\OrderItem::where('order_id', $orderId)->select();
+                foreach ($orderItems as $item) {
+                    \app\model\Product::where('id', $item->product_id)
+                        ->inc('sales', $item->quantity)
+                        ->update();
+                }
+
+                Order::commit();
+                return Response::success([], '确认收货成功');
+            } catch (\Exception $e) {
+                Order::rollback();
+                throw $e;
+            }
         } catch (\Exception $e) {
             return Response::error('确认收货失败：' . $e->getMessage());
         }

@@ -15,4 +15,5 @@ class ProductSpec extends Model
     protected $autoWriteTimestamp = true;
     protected $createTime = 'created_at';
     protected $updateTime = 'updated_at';
+    protected $dateFormat = 'Y-m-d H:i:s';
 }

@@ -12,7 +12,8 @@ use think\Model;
 class ProductImage extends Model
 {
     protected $name = 'product_images';
-    protected $autoWriteTimestamp = 'created_at';
+    protected $autoWriteTimestamp = true;
     protected $createTime = 'created_at';
     protected $updateTime = false;
+    protected $dateFormat = 'Y-m-d H:i:s';
 }
