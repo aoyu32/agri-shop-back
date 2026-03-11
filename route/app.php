@@ -264,6 +264,9 @@ Route::group('api/user', function () {
 
     // 获取用户统计信息
     Route::get('statistics', 'UserController/statistics');
+
+    // 获取首页统计数据
+    Route::get('home-statistics', 'UserController/homeStatistics');
 })->middleware(\app\middleware\Auth::class);
 
 // 当季农产品相关路由
@@ -311,6 +314,47 @@ Route::group('api/merchant/order', function () {
     Route::post('delete-refund', 'MerchantOrderController/deleteRefund');
 })->middleware(\app\middleware\Auth::class);
 
+// 农户分类管理相关路由（需要登录且为农户角色）
+Route::group('api/merchant/category', function () {
+    // 获取系统分类列表（供选择）
+    Route::get('system-list', 'MerchantCategoryController/systemCategories');
+
+    // 获取店铺分类列表
+    Route::get('list', 'MerchantCategoryController/list');
+
+    // 添加分类到店铺
+    Route::post('add', 'MerchantCategoryController/add');
+
+    // 更新分类排序
+    Route::post('update', 'MerchantCategoryController/update');
+
+    // 切换分类状态
+    Route::post('toggle-status', 'MerchantCategoryController/toggleStatus');
+
+    // 删除店铺分类
+    Route::post('delete', 'MerchantCategoryController/delete');
+})->middleware(\app\middleware\Auth::class);
+
+// 农户商品管理相关路由（需要登录且为农户角色）
+Route::group('api/merchant/product', function () {
+    // 获取商品列表
+    Route::get('list', 'MerchantProductController/list');
+
+    // 获取商品详情
+    Route::get('detail', 'MerchantProductController/detail');
+
+    // 添加商品
+    Route::post('add', 'MerchantProductController/add');
+
+    // 更新商品
+    Route::post('update', 'MerchantProductController/update');
+
+    // 切换商品状态
+    Route::post('toggle-status', 'MerchantProductController/toggleStatus');
+
+    // 删除商品
+    Route::post('delete', 'MerchantProductController/delete');
+})->middleware(\app\middleware\Auth::class);
 
 // 评价相关路由
 Route::group('api/review', function () {
