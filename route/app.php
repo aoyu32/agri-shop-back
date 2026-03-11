@@ -84,6 +84,9 @@ Route::group('api/shop', function () {
 
     // 获取我的店铺信息（需要登录）
     Route::get('my-shop', 'ShopController/myShop')->middleware(\app\middleware\Auth::class);
+
+    // 更新店铺设置（需要登录）
+    Route::post('update-settings', 'ShopController/updateSettings')->middleware(\app\middleware\Auth::class);
 });
 
 // 购物车相关路由（需要登录）

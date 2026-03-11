@@ -74,6 +74,7 @@ class UserController extends BaseController
             // 获取要更新的字段
             $nickname = $this->request->param('nickname');
             $avatar = $this->request->param('avatar');
+            $phone = $this->request->param('phone');
             $address = $this->request->param('address');
             $bio = $this->request->param('bio');
 
@@ -90,11 +91,34 @@ class UserController extends BaseController
                 $user->nickname = $nickname;
             }
 
-            // 更新其他字段
+            // 更新头像
             if ($avatar !== null) {
                 $user->avatar = $avatar;
             }
 
+            // 更新手机号
+            if ($phone !== null) {
+                if (empty($phone)) {
+                    return Response::validateError('手机号不能为空');
+                }
+
+                if (!preg_match('/^1[3-9]\d{9}$/', $phone)) {
+                    return Response::validateError('请输入正确的手机号');
+                }
+
+                // 检查手机号是否已被其他用户使用
+                $exists = User::where('phone', $phone)
+                    ->where('id', '<>', $userId)
+                    ->find();
+
+                if ($exists) {
+                    return Response::validateError('该手机号已被其他用户使用');
+                }
+
+                $user->phone = $phone;
+            }
+
+            // 更新地址
             if ($address !== null) {
                 if (mb_strlen($address) > 200) {
                     return Response::validateError('地址长度不能超过200个字符');
@@ -102,6 +126,7 @@ class UserController extends BaseController
                 $user->address = $address;
             }
 
+            // 更新个人简介
             if ($bio !== null) {
                 if (mb_strlen($bio) > 500) {
                     return Response::validateError('个人简介长度不能超过500个字符');

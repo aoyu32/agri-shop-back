@@ -241,6 +241,9 @@ class MerchantProductController extends BaseController
                     }
                 }
 
+                // 更新店铺商品数量
+                Shop::where('id', $shop->id)->inc('product_count')->update();
+
                 Product::commit();
                 return Response::success(['id' => $product->id], '添加成功');
             } catch (\Exception $e) {
@@ -435,6 +438,9 @@ class MerchantProductController extends BaseController
 
                 // 删除商品
                 $product->delete();
+
+                // 更新店铺商品数量
+                Shop::where('id', $shop->id)->dec('product_count')->update();
 
                 Product::commit();
                 return Response::success([], '删除成功');

@@ -171,7 +171,7 @@ class ShopController extends BaseController
             if ($shop->user) {
                 $merchantInfo = [
                     'id' => $shop->user->id,
-                    'username' => $shop->user->username,
+                    'nickname' => $shop->user->nickname,
                     'avatar' => $shop->user->avatar,
                     'phone' => $shop->user->phone
                 ];
@@ -350,6 +350,100 @@ class ShopController extends BaseController
     }
 
     /**
+     * 更新店铺设置
+     */
+    public function updateSettings()
+    {
+        try {
+            $userId = $this->request->userId;
+
+            $shop = Shop::where('user_id', $userId)->find();
+            if (!$shop) {
+                return Response::error('您还没有开通店铺');
+            }
+
+            // 获取参数
+            $shopName = $this->request->param('shop_name');
+            $shopLogo = $this->request->param('shop_logo');
+            $shopBanner = $this->request->param('shop_banner');
+            $description = $this->request->param('description');
+            $location = $this->request->param('location');
+            $phone = $this->request->param('phone');
+
+            // 验证必填字段
+            if (empty($shopName)) {
+                return Response::validateError('店铺名称不能为空');
+            }
+
+            if (mb_strlen($shopName) < 2 || mb_strlen($shopName) > 50) {
+                return Response::validateError('店铺名称长度为2-50个字符');
+            }
+
+            if (empty($shopLogo)) {
+                return Response::validateError('请上传店铺Logo');
+            }
+
+            if (empty($shopBanner)) {
+                return Response::validateError('请上传店铺横幅');
+            }
+
+            if (empty($description)) {
+                return Response::validateError('店铺简介不能为空');
+            }
+
+            if (empty($location)) {
+                return Response::validateError('店铺地址不能为空');
+            }
+
+            if (empty($phone)) {
+                return Response::validateError('联系电话不能为空');
+            }
+
+            if (!preg_match('/^1[3-9]\d{9}$/', $phone)) {
+                return Response::validateError('请输入正确的手机号码');
+            }
+
+            // 开始事务
+            \think\facade\Db::startTrans();
+            try {
+                // 更新店铺信息
+                $shop->shop_name = $shopName;
+                $shop->shop_logo = $shopLogo;
+                $shop->shop_banner = $shopBanner;
+                $shop->description = $description;
+                $shop->location = $location;
+                $shop->save();
+
+                // 更新用户手机号
+                $user = \app\model\User::find($userId);
+                if ($user) {
+                    $user->phone = $phone;
+                    $user->save();
+                }
+
+                \think\facade\Db::commit();
+
+                return Response::success([
+                    'shop' => [
+                        'id' => $shop->id,
+                        'shop_name' => $shop->shop_name,
+                        'shop_logo' => $shop->shop_logo,
+                        'shop_banner' => $shop->shop_banner,
+                        'description' => $shop->description,
+                        'location' => $shop->location
+                    ]
+                ], '更新成功');
+            } catch (\Exception $e) {
+                \think\facade\Db::rollback();
+                throw $e;
+            }
+        } catch (\Exception $e) {
+            \think\facade\Log::error('更新店铺设置失败：' . $e->getMessage());
+            return Response::error('更新店铺设置失败：' . $e->getMessage());
+        }
+    }
+
+    /**
      * 获取当前用户的店铺信息
      */
     public function myShop()
@@ -357,12 +451,13 @@ class ShopController extends BaseController
         try {
             $userId = $this->request->userId;
 
-            $shop = Shop::where('user_id', $userId)->find();
+            $shop = Shop::with(['user'])->where('user_id', $userId)->find();
 
             if (!$shop) {
                 return Response::success([
                     'has_shop' => false,
-                    'shop' => null
+                    'shop' => null,
+                    'user' => null
                 ]);
             }
 
@@ -384,6 +479,9 @@ class ShopController extends BaseController
                     'status' => $shop->status,
                     'open_time' => $shop->open_time,
                     'created_at' => $shop->created_at
+                ],
+                'user' => [
+                    'phone' => $shop->user ? $shop->user->phone : ''
                 ]
             ]);
         } catch (\Exception $e) {

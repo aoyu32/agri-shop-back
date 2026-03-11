@@ -535,12 +535,24 @@ class OrderController extends BaseController
                 $order->complete_time = date('Y-m-d H:i:s');
                 $order->save();
 
-                // 增加商品销量
+                // 增加商品销量和店铺销量
                 $orderItems = \app\model\OrderItem::where('order_id', $orderId)->select();
+                $totalSales = 0;
                 foreach ($orderItems as $item) {
                     \app\model\Product::where('id', $item->product_id)
                         ->inc('sales', $item->quantity)
                         ->update();
+                    $totalSales += $item->quantity;
+                }
+
+                // 更新店铺销量
+                if ($totalSales > 0) {
+                    $product = \app\model\Product::where('id', $orderItems[0]->product_id)->find();
+                    if ($product && $product->shop_id) {
+                        \app\model\Shop::where('id', $product->shop_id)
+                            ->inc('sales_count', $totalSales)
+                            ->update();
+                    }
                 }
 
                 Order::commit();
