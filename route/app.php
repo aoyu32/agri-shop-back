@@ -76,6 +76,9 @@ Route::group('api/shop', function () {
     // 获取店铺详情
     Route::get('detail', 'ShopController/detail');
 
+    // 获取店铺页面（包含分类和商品）
+    Route::get('page', 'ShopController/shopPage');
+
     // 申请开通店铺（需要登录）
     Route::post('apply', 'ShopController/apply')->middleware(\app\middleware\Auth::class);
 
