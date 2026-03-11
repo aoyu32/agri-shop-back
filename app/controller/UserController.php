@@ -355,6 +355,92 @@ class UserController extends BaseController
     }
 
     /**
+     * 获取首页统计数据（消费者和农户）
+     */
+    public function homeStatistics()
+    {
+        try {
+            $userId = $this->request->userId;
+
+            // 获取用户信息
+            $user = User::find($userId);
+            if (!$user) {
+                return Response::error('用户不存在');
+            }
+
+            $statistics = [];
+
+            // 如果是农户（role = 'merchant'）
+            if ($user->role === 'merchant') {
+                // 获取农户的店铺
+                $shop = \app\model\Shop::where('user_id', $userId)->find();
+
+                if ($shop && $shop->audit_status === 1) {
+                    // 店铺已审核通过，获取订单统计
+                    $pendingCount = \app\model\Order::where('shop_id', $shop->id)
+                        ->where('status', 'paid')
+                        ->count();
+
+                    $shippedCount = \app\model\Order::where('shop_id', $shop->id)
+                        ->where('status', 'shipped')
+                        ->count();
+
+                    $productCount = \app\model\Product::where('shop_id', $shop->id)
+                        ->where('status', 1)
+                        ->count();
+
+                    $statistics = [
+                        'type' => 'merchant',
+                        'pending' => $pendingCount,
+                        'shipped' => $shippedCount,
+                        'products' => $productCount
+                    ];
+                } else {
+                    // 店铺未开通或未审核
+                    $statistics = [
+                        'type' => 'merchant',
+                        'pending' => 0,
+                        'shipped' => 0,
+                        'products' => 0
+                    ];
+                }
+            } else {
+                // 消费者订单统计
+                $pendingCount = \app\model\Order::where('user_id', $userId)
+                    ->where('status', 'pending')
+                    ->count();
+
+                $paidCount = \app\model\Order::where('user_id', $userId)
+                    ->where('status', 'paid')
+                    ->count();
+
+                $shippedCount = \app\model\Order::where('user_id', $userId)
+                    ->where('status', 'shipped')
+                    ->count();
+
+                // 待评价订单数（已完成但未评价）
+                $receivedCount = \app\model\Order::where('user_id', $userId)
+                    ->where('status', 'completed')
+                    ->where('is_reviewed', 0)
+                    ->count();
+
+                $statistics = [
+                    'type' => 'consumer',
+                    'pending' => $pendingCount,
+                    'paid' => $paidCount,
+                    'shipped' => $shippedCount,
+                    'received' => $receivedCount
+                ];
+            }
+
+            return Response::success($statistics);
+        } catch (\Exception $e) {
+            \think\facade\Log::error('获取首页统计失败：' . $e->getMessage());
+            return Response::error('获取统计信息失败：' . $e->getMessage());
+        }
+    }
+
+    /**
      * 发送验证码（用于更换手机号）
      */
     public function sendCode()
