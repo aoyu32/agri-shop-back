@@ -384,6 +384,15 @@ Route::group('api/review', function () {
 
     // 获取商品评价列表（公开接口，不需要登录）
     Route::get('product-reviews', 'ReviewController/productReviews');
+
+    // 商家获取评价列表（需要登录）
+    Route::get('merchant-reviews', 'ReviewController/merchantReviews')->middleware(\app\middleware\Auth::class);
+
+    // 商家回复评价（需要登录）
+    Route::post('merchant-reply', 'ReviewController/merchantReply')->middleware(\app\middleware\Auth::class);
+
+    // 商家删除回复（需要登录）
+    Route::post('merchant-delete-reply', 'ReviewController/merchantDeleteReply')->middleware(\app\middleware\Auth::class);
 });
 
 // 退款相关路由

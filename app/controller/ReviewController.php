@@ -524,4 +524,186 @@ class ReviewController extends BaseController
             $product->save();
         }
     }
+
+    /**
+     * 商家获取评价列表
+     */
+    public function merchantReviews()
+    {
+        try {
+            $userId = $this->request->userId;
+            $status = $this->request->param('status', ''); // pending-待回复, replied-已回复
+            $page = (int)$this->request->param('page', 1);
+            $pageSize = (int)$this->request->param('page_size', 10);
+
+            // 获取商家店铺
+            $shop = \app\model\Shop::where('user_id', $userId)->find();
+            if (!$shop) {
+                return Response::error('您还没有开通店铺');
+            }
+
+            // 构建查询
+            $query = OrderReview::with(['user', 'product', 'order'])
+                ->where('shop_id', $shop->id)
+                ->order('created_at', 'desc');
+
+            // 状态筛选
+            if ($status === 'pending') {
+                $query->where('reply_content', 'null');
+            } elseif ($status === 'replied') {
+                $query->where('reply_content', '<>', '');
+            }
+
+            $reviews = $query->paginate([
+                'list_rows' => $pageSize,
+                'page' => $page
+            ]);
+
+            $list = [];
+            foreach ($reviews->items() as $review) {
+                $list[] = $this->formatMerchantReview($review);
+            }
+
+            return Response::success([
+                'list' => $list,
+                'total' => $reviews->total(),
+                'page' => $page,
+                'page_size' => $pageSize
+            ]);
+        } catch (\Exception $e) {
+            \think\facade\Log::error('获取商家评价列表失败：' . $e->getMessage());
+            return Response::error('获取评价列表失败：' . $e->getMessage());
+        }
+    }
+
+    /**
+     * 商家回复评价
+     */
+    public function merchantReply()
+    {
+        try {
+            $userId = $this->request->userId;
+            $reviewId = $this->request->param('review_id');
+            $replyContent = $this->request->param('reply_content');
+
+            if (!$reviewId) {
+                return Response::validateError('评价ID不能为空');
+            }
+
+            if (!$replyContent || !trim($replyContent)) {
+                return Response::validateError('回复内容不能为空');
+            }
+
+            // 获取商家店铺
+            $shop = \app\model\Shop::where('user_id', $userId)->find();
+            if (!$shop) {
+                return Response::error('您还没有开通店铺');
+            }
+
+            // 查找评价
+            $review = OrderReview::where('id', $reviewId)
+                ->where('shop_id', $shop->id)
+                ->find();
+
+            if (!$review) {
+                return Response::error('评价不存在');
+            }
+
+            // 更新回复
+            $review->reply_content = trim($replyContent);
+            $review->reply_time = date('Y-m-d H:i:s');
+            $review->save();
+
+            return Response::success([
+                'review' => $this->formatMerchantReview($review)
+            ], '回复成功');
+        } catch (\Exception $e) {
+            \think\facade\Log::error('商家回复评价失败：' . $e->getMessage());
+            return Response::error('回复失败：' . $e->getMessage());
+        }
+    }
+
+    /**
+     * 商家删除回复
+     */
+    public function merchantDeleteReply()
+    {
+        try {
+            $userId = $this->request->userId;
+            $reviewId = $this->request->param('review_id');
+
+            if (!$reviewId) {
+                return Response::validateError('评价ID不能为空');
+            }
+
+            // 获取商家店铺
+            $shop = \app\model\Shop::where('user_id', $userId)->find();
+            if (!$shop) {
+                return Response::error('您还没有开通店铺');
+            }
+
+            // 查找评价
+            $review = OrderReview::where('id', $reviewId)
+                ->where('shop_id', $shop->id)
+                ->find();
+
+            if (!$review) {
+                return Response::error('评价不存在');
+            }
+
+            // 删除回复（清空字段）
+            $review->reply_content = null;
+            $review->reply_time = null;
+            $review->save();
+
+            return Response::success([
+                'review' => $this->formatMerchantReview($review)
+            ], '删除回复成功');
+        } catch (\Exception $e) {
+            \think\facade\Log::error('商家删除回复失败：' . $e->getMessage());
+            return Response::error('删除回复失败：' . $e->getMessage());
+        }
+    }
+
+    /**
+     * 格式化商家评价数据
+     */
+    private function formatMerchantReview($review)
+    {
+        // 确保 images 是数组格式
+        $images = $review->images;
+        if (is_string($images)) {
+            $images = json_decode($images, true) ?? [];
+        }
+        if (!is_array($images)) {
+            $images = [];
+        }
+
+        // 获取订单商品规格信息
+        $orderItem = \app\model\OrderItem::where('id', $review->order_item_id)->find();
+        $specLabel = $orderItem ? ($orderItem->spec_label ?? '默认规格') : '默认规格';
+
+        return [
+            'id' => $review->id,
+            'user' => [
+                'id' => $review->user_id,
+                'name' => $review->user->nickname ?? '用户',
+                'avatar' => $review->user->avatar ?? ''
+            ],
+            'product' => [
+                'id' => $review->product_id,
+                'name' => $review->product->name ?? '',
+                'image' => $review->product->main_image ?? '',
+                'spec' => $specLabel
+            ],
+            'rating' => $review->rating,
+            'content' => $review->content,
+            'images' => $images,
+            'reply' => $review->reply_content,
+            'reply_time' => $review->reply_time,
+            'status' => $review->reply_content ? 'replied' : 'pending',
+            'createTime' => $review->created_at,
+            'created_at' => $review->created_at
+        ];
+    }
 }
