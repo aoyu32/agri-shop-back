@@ -6,3 +6,15 @@
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteRule ^(.*)$ index.php/$1 [QSA,PT,L]
 </IfModule>
+
+<IfModule mod_headers.c>
+  # Disable buffering for Server-Sent Events
+  <FilesMatch "\.php$">
+    Header set X-Accel-Buffering "no"
+  </FilesMatch>
+</IfModule>
+
+<IfModule mod_deflate.c>
+  # Disable compression for SSE endpoints
+  SetEnvIfNoCase Request_URI "send-message-stream" no-gzip=1
+</IfModule>

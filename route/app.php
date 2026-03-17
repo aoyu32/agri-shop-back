@@ -400,3 +400,24 @@ Route::group('api/refund', function () {
     // 取消退款申请（需要登录）
     Route::post('cancel', 'RefundController/cancel')->middleware(\app\middleware\Auth::class);
 });
+
+// AI咨询相关路由（需要登录）
+Route::group('api/ai-consult', function () {
+    // 发送消息（流式输出）
+    Route::post('send-message-stream', 'AiConsultController/sendMessageStream');
+
+    // 获取会话列表
+    Route::get('conversations', 'AiConsultController/getConversations');
+
+    // 获取会话消息列表
+    Route::get('messages', 'AiConsultController/getMessages');
+
+    // 删除会话
+    Route::post('delete-conversation', 'AiConsultController/deleteConversation');
+
+    // 更新会话标题
+    Route::post('update-title', 'AiConsultController/updateConversationTitle');
+
+    // 清空所有会话
+    Route::post('clear-all', 'AiConsultController/clearAllConversations');
+})->middleware(\app\middleware\Auth::class);
