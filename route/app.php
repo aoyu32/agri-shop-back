@@ -284,6 +284,12 @@ Route::group('api/seasonal-product', function () {
     Route::get('all', 'SeasonalProductController/all');
 });
 
+// 商家管理相关路由（需要登录）
+Route::group('api/merchant', function () {
+    // 获取数据概览
+    Route::get('dashboard', 'MerchantController/dashboard');
+})->middleware(\app\middleware\Auth::class);
+
 // 农户订单管理相关路由（需要登录且为农户角色）
 Route::group('api/merchant/order', function () {
     // 获取订单列表
