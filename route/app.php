@@ -290,6 +290,28 @@ Route::group('api/merchant', function () {
     Route::get('dashboard', 'MerchantController/dashboard');
 })->middleware(\app\middleware\Auth::class);
 
+// 行情预测相关路由
+Route::group('api/market-forecast', function () {
+    // 获取店铺销售趋势
+    Route::get('shop-sales-trend', 'MarketForecastController/shopSalesTrend');
+
+    // 获取平台销售趋势
+    Route::get('platform-sales-trend', 'MarketForecastController/platformSalesTrend');
+
+    // 获取店铺热销农产品排行
+    Route::get('shop-product-rank', 'MarketForecastController/shopProductRank');
+
+    // 获取平台热销农产品排行
+    Route::get('platform-product-rank', 'MarketForecastController/platformProductRank');
+
+    // 获取店铺品类销售分布
+    Route::get('shop-category-distribution', 'MarketForecastController/shopCategoryDistribution');
+
+    // 获取平台品类销售分布
+    Route::get('platform-category-distribution', 'MarketForecastController/platformCategoryDistribution');
+})->middleware(\app\middleware\Auth::class);
+
+
 // 农户订单管理相关路由（需要登录且为农户角色）
 Route::group('api/merchant/order', function () {
     // 获取订单列表
