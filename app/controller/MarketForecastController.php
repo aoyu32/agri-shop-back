@@ -6,9 +6,6 @@ namespace app\controller;
 
 use app\BaseController;
 use app\model\Order;
-use app\model\OrderItem;
-use app\model\Product;
-use app\model\Category;
 use app\model\Shop;
 use app\common\Response;
 use think\facade\Db;

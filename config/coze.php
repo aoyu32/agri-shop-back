@@ -8,6 +8,9 @@ return [
     // Bot ID
     'bot_id' => env('coze.bot_id', ''),
 
+    // 行情预测 Bot ID
+    'market_bot_id' => env('coze.market_bot_id', ''),
+
     // API地址
     'api_url' => env('coze.api_url', 'https://api.coze.cn/v3/chat'),
 

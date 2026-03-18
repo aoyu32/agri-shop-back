@@ -311,6 +311,12 @@ Route::group('api/market-forecast', function () {
     Route::get('platform-category-distribution', 'MarketForecastController/platformCategoryDistribution');
 })->middleware(\app\middleware\Auth::class);
 
+// AI行情预测相关路由
+Route::group('api/ai-market', function () {
+    // 获取AI行情预测
+    Route::get('forecast', 'AIMarketController/forecast');
+})->middleware(\app\middleware\Auth::class);
+
 
 // 农户订单管理相关路由（需要登录且为农户角色）
 Route::group('api/merchant/order', function () {
