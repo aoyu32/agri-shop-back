@@ -464,3 +464,42 @@ Route::group('api/ai-consult', function () {
     // 清空所有会话
     Route::post('clear-all', 'AiConsultController/clearAllConversations');
 })->middleware(\app\middleware\Auth::class);
+
+// 社区相关路由
+Route::group('api/community', function () {
+    // 获取帖子列表（公开）
+    Route::get('posts', 'CommunityController/list');
+
+    // 获取热门帖子（公开）
+    Route::get('hot-posts', 'CommunityController/hotPosts');
+
+    // 获取用户统计（需要登录）
+    Route::get('user-stats', 'CommunityController/userStats')->middleware(\app\middleware\Auth::class);
+
+    // 创建帖子（需要登录）
+    Route::post('create', 'CommunityController/create')->middleware(\app\middleware\Auth::class);
+
+    // 点赞/取消点赞帖子（需要登录）
+    Route::post('toggle-like', 'CommunityController/toggleLike')->middleware(\app\middleware\Auth::class);
+});
+
+// 帖子详情相关路由
+Route::group('api/post', function () {
+    // 获取帖子详情（公开）
+    Route::get('detail', 'PostDetailController/detail');
+
+    // 获取相关推荐（公开）
+    Route::get('related', 'PostDetailController/relatedPosts');
+});
+
+// 帖子评论相关路由
+Route::group('api/post-comment', function () {
+    // 获取评论列表（公开）
+    Route::get('list', 'PostCommentController/list');
+
+    // 发表评论（需要登录）
+    Route::post('create', 'PostCommentController/create')->middleware(\app\middleware\Auth::class);
+
+    // 点赞/取消点赞评论（需要登录）
+    Route::post('toggle-like', 'PostCommentController/toggleLike')->middleware(\app\middleware\Auth::class);
+});
