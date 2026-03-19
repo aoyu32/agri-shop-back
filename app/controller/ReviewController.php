@@ -10,6 +10,7 @@ use app\model\OrderItem;
 use app\model\OrderReview;
 use app\model\Product;
 use app\model\ReviewLike;
+use app\model\Notification;
 use app\common\Response;
 
 /**
@@ -109,6 +110,19 @@ class ReviewController extends BaseController
 
                     // 更新商品评分
                     $this->updateProductRating($orderItem->product_id);
+
+                    // 通知农户有新评价
+                    $shop = \app\model\Shop::find($order->shop_id);
+                    if ($shop && $shop->user_id) {
+                        Notification::createNotification(
+                            $shop->user_id,
+                            'review',
+                            '新评价通知',
+                            "用户对【{$orderItem->product_name}】进行了评价",
+                            $orderItem->product_id,
+                            'review'
+                        );
+                    }
                 }
 
                 // 标记订单已评价
@@ -613,6 +627,19 @@ class ReviewController extends BaseController
             $review->reply_content = trim($replyContent);
             $review->reply_time = date('Y-m-d H:i:s');
             $review->save();
+
+            // 通知消费者商家已回复
+            $product = \app\model\Product::find($review->product_id);
+            $productName = $product ? $product->name : '商品';
+
+            Notification::createNotification(
+                $review->user_id,
+                'reply',
+                '商家回复',
+                "商家已回复您对【{$productName}】的评价，快去查看吧",
+                $review->id,
+                'review'
+            );
 
             return Response::success([
                 'review' => $this->formatMerchantReview($review)

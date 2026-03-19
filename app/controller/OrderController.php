@@ -10,6 +10,8 @@ use app\model\OrderItem;
 use app\model\Product;
 use app\model\ProductSpec;
 use app\model\Cart;
+use app\model\Notification;
+use app\model\Shop;
 use app\common\Response;
 use think\facade\Db;
 
@@ -119,6 +121,19 @@ class OrderController extends BaseController
                         'status' => 'pending',
                         'remark' => $remark
                     ]);
+
+                    // 通知农户有新订单
+                    $shop = Shop::find($product->shop_id);
+                    if ($shop && $shop->user_id) {
+                        Notification::createNotification(
+                            $shop->user_id,
+                            'order',
+                            '新订单通知',
+                            "您有一个新订单【{$product->name}】，请及时处理",
+                            $order->id,
+                            'order'
+                        );
+                    }
 
                     // 创建订单商品
                     OrderItem::create([
@@ -234,6 +249,24 @@ class OrderController extends BaseController
                             'status' => 'pending',
                             'remark' => $remark
                         ]);
+
+                        // 通知农户有新订单
+                        $shop = Shop::find($shopId);
+                        if ($shop && $shop->user_id) {
+                            $productNames = array_column($orderItems, 'product_name');
+                            $productNamesStr = implode('、', array_slice($productNames, 0, 2));
+                            if (count($productNames) > 2) {
+                                $productNamesStr .= '等';
+                            }
+                            Notification::createNotification(
+                                $shop->user_id,
+                                'order',
+                                '新订单通知',
+                                "您有一个新订单【{$productNamesStr}】，请及时处理",
+                                $order->id,
+                                'order'
+                            );
+                        }
 
                         // 创建订单商品
                         foreach ($orderItems as &$orderItem) {

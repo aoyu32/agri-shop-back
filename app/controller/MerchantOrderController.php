@@ -7,6 +7,7 @@ namespace app\controller;
 use app\BaseController;
 use app\model\Order;
 use app\model\Shop;
+use app\model\Notification;
 use app\common\Response;
 
 /**
@@ -185,6 +186,26 @@ class MerchantOrderController extends BaseController
             $order->tracking_no = $trackingNo;
             $order->ship_time = date('Y-m-d H:i:s');
             $order->save();
+
+            // 通知消费者商品已发货
+            $orderItems = \app\model\OrderItem::where('order_id', $orderId)->select();
+            $productNames = [];
+            foreach ($orderItems as $item) {
+                $productNames[] = $item->product_name;
+            }
+            $productNamesStr = implode('、', array_slice($productNames, 0, 2));
+            if (count($productNames) > 2) {
+                $productNamesStr .= '等';
+            }
+
+            Notification::createNotification(
+                $order->user_id,
+                'order',
+                '订单发货通知',
+                "您的订单【{$productNamesStr}】已发货，请注意查收",
+                $order->id,
+                'order'
+            );
 
             return Response::success([], '发货成功');
         } catch (\Exception $e) {

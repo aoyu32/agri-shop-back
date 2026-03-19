@@ -503,3 +503,24 @@ Route::group('api/post-comment', function () {
     // 点赞/取消点赞评论（需要登录）
     Route::post('toggle-like', 'PostCommentController/toggleLike')->middleware(\app\middleware\Auth::class);
 });
+
+// 消息通知相关路由（需要登录）
+Route::group('api/notification', function () {
+    // 获取通知列表
+    Route::get('list', 'NotificationController/list');
+
+    // 获取未读数量
+    Route::get('unread-count', 'NotificationController/unreadCount');
+
+    // 标记单条通知为已读
+    Route::post('mark-read', 'NotificationController/markAsRead');
+
+    // 标记所有通知为已读
+    Route::post('mark-all-read', 'NotificationController/markAllAsRead');
+
+    // 删除通知
+    Route::post('delete', 'NotificationController/delete');
+
+    // 清空已读通知
+    Route::post('clear-read', 'NotificationController/clearRead');
+})->middleware(\app\middleware\Auth::class);
