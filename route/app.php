@@ -116,6 +116,47 @@ Route::group('api/cart', function () {
     Route::get('count', 'CartController/count');
 })->middleware(\app\middleware\Auth::class);
 
+// 绠＄悊鍛樼鐞嗗悗鍙拌矾鐢憋紙闇€瑕佺櫥褰曚笖涓虹鐞嗗憳锛?
+Route::group('api/admin', function () {
+    Route::get('dashboard/overview', 'AdminDashboardController/overview');
+
+    Route::group('user', function () {
+        Route::get('list', 'AdminUserController/list');
+        Route::get('detail', 'AdminUserController/detail');
+        Route::post('create', 'AdminUserController/create');
+        Route::post('update', 'AdminUserController/update');
+        Route::post('delete', 'AdminUserController/delete');
+    });
+
+    Route::group('merchant', function () {
+        Route::get('list', 'AdminMerchantController/list');
+        Route::get('detail', 'AdminMerchantController/detail');
+        Route::get('available-users', 'AdminMerchantController/availableUsers');
+        Route::post('create', 'AdminMerchantController/create');
+        Route::post('update', 'AdminMerchantController/update');
+        Route::post('review', 'AdminMerchantController/review');
+        Route::post('toggle-status', 'AdminMerchantController/toggleStatus');
+        Route::post('delete', 'AdminMerchantController/delete');
+    });
+
+    Route::group('category', function () {
+        Route::get('list', 'AdminCategoryController/list');
+        Route::get('detail', 'AdminCategoryController/detail');
+        Route::post('create', 'AdminCategoryController/create');
+        Route::post('update', 'AdminCategoryController/update');
+        Route::post('delete', 'AdminCategoryController/delete');
+    });
+
+    Route::group('community', function () {
+        Route::get('list', 'AdminCommunityController/list');
+        Route::get('detail', 'AdminCommunityController/detail');
+        Route::post('create', 'AdminCommunityController/create');
+        Route::post('update', 'AdminCommunityController/update');
+        Route::post('update-status', 'AdminCommunityController/updateStatus');
+        Route::post('delete', 'AdminCommunityController/delete');
+    });
+})->middleware(\app\middleware\Auth::class)->middleware(\app\middleware\Admin::class);
+
 // 订单相关路由（需要登录）
 Route::group('api/order', function () {
     // 创建订单

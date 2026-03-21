@@ -5,6 +5,7 @@ return [
     'alias'    => [
         'cors' => \app\middleware\Cors::class,
         'auth' => \app\middleware\Auth::class,
+        'admin' => \app\middleware\Admin::class,
     ],
     // 优先级设置，此数组中的中间件会按照数组中的顺序优先执行
     'priority' => [

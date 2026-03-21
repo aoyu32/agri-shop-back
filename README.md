@@ -31,10 +31,10 @@ mysql -u root -p agri_shop < ../agri-shop-front/database/schema.sql
 
 4. 启动服务
 ```bash
-php think run
+php think run -p 8080
 ```
 
-默认访问地址：http://localhost:8000
+默认访问地址：http://localhost:8080
 
 ## API 接口文档
 
