@@ -50,12 +50,12 @@ class AuthController extends BaseController
                 return Response::error('账号或密码错误');
             }
 
-            // 检查用户状态（账号被禁用时也提示账号或密码错误，防止信息泄露）
+            // 检查用户状态
             if ($user->status == 0) {
                 return Response::error('账号或密码错误');
             }
 
-            // 验证角色（如果指定了期望角色）
+            // 验证角色
             if ($expectedRole && $user->role !== $expectedRole) {
                 $roleNames = [
                     'consumer' => '消费者',
@@ -64,7 +64,7 @@ class AuthController extends BaseController
                 ];
                 $expectedRoleName = $roleNames[$expectedRole] ?? $expectedRole;
                 $actualRoleName = $roleNames[$user->role] ?? $user->role;
-                return Response::error("该账号是{$actualRoleName}账号，请使用{$expectedRoleName}登录入口");
+                return Response::error("账号或密码错误！");
             }
 
             // 生成 JWT Token
