@@ -153,6 +153,9 @@ class OrderController extends BaseController
                         ProductSpec::where('id', $specId)
                             ->dec('stock', $quantity)
                             ->update();
+                        Product::where('id', $productId)
+                            ->dec('stock', $quantity)
+                            ->update();
                     } else {
                         Product::where('id', $productId)
                             ->dec('stock', $quantity)
@@ -278,6 +281,9 @@ class OrderController extends BaseController
                         foreach ($items as $item) {
                             if ($item->spec_id) {
                                 ProductSpec::where('id', $item->spec_id)
+                                    ->dec('stock', $item->quantity)
+                                    ->update();
+                                Product::where('id', $item->product_id)
                                     ->dec('stock', $item->quantity)
                                     ->update();
                             } else {
@@ -514,6 +520,9 @@ class OrderController extends BaseController
                 foreach ($items as $item) {
                     if ($item->spec_id) {
                         ProductSpec::where('id', $item->spec_id)
+                            ->inc('stock', $item->quantity)
+                            ->update();
+                        Product::where('id', $item->product_id)
                             ->inc('stock', $item->quantity)
                             ->update();
                     } else {
